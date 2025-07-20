@@ -55,7 +55,7 @@ public partial class TelegramClientService
                 while (true)
                 {
                     _log.Error("Disposing the client and trying to reconnect in 5 seconds...");
-                    await DisconnectAndClear();
+                    await DisconnectAndClearAsync();
                     await Task.Delay(5000);
                     try
                     {
@@ -157,7 +157,9 @@ public partial class TelegramClientService
                 $"Received {nameof(UpdateNewChannelMessage)} update, but the messageBase from the update is not a Message");
         }
         
-        var dbChannel = dbContext.TelegramChannels.Include(tc=>tc.AnimeEpisodesSetting).FirstOrDefault(c => c.ChatId == channel.ID);
+        var dbChannel = dbContext.TelegramChannels
+            .Include(tc => tc.AnimeEpisodesSetting)
+            .FirstOrDefault(c => c.ChatId == channel.ID);
         
         _log.Info("Update has been received from channel {channelInfo} with message {message}", dbChannel, message.message);
 
@@ -229,12 +231,13 @@ public partial class TelegramClientService
                 $"Received {nameof(UpdateNewChannelMessage)} update, but the messageBase from the update is not a Message");
         }
         var dbMessage = dbContext.TelegramMessages
-            .Include(tm => tm.TelegramChannel.AnimeEpisodesSetting)
+            .Include(tm=>tm.TelegramChannel)
+                .ThenInclude(c => c.AnimeEpisodesSetting)
             .Include(tm => tm.MediaDocument)
-            .FirstOrDefault(tm => tm.MessageId == message.Peer.ID);
+            .FirstOrDefault(tm => tm.MessageId == message.ID && tm.TelegramChannel.ChatId == message.Peer.ID);
         if (dbMessage is null)
         {
-            _log.Warning("Received channel message update for message {id} - {messageText}, but the message doesn't exist in the database",  message.Peer.ID, message.message);
+            _log.Warning("Received channel message update for message {id} - {messageText}, but the message doesn't exist in the database",  message.ID, message.message);
             return;
         }
 
@@ -242,6 +245,8 @@ public partial class TelegramClientService
         {
             return;
         }
+
+        dbMessage.UpdateDatetime = message.edit_date;
         
         dbMessage.MessageText = message.message;
         if (dbMessage.MediaDocument is not null 

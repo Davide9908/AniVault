@@ -31,7 +31,8 @@ using (var scope = app.Services.CreateScope())
             .EverySecond()
             .Once()
             .PreventOverlapping(nameof(StartupTask));
-    });
+    })
+    .LogScheduledTaskProgress();
 }
 
 // var c = app.Services.GetService<TelegramClientService>();

@@ -5,9 +5,9 @@ namespace AniVault.Api;
 
 public static class TelegramClientApis
 {
-    public static void MapApis(this WebApplication app)
+    public static void MapTelegramClientApis(this WebApplication app)
     {
-        var todosApi = app.MapGroup("/tgClient");
+        var todosApi = app.MapGroup("/tgClient").WithTags("telegram Apis");
         todosApi.MapPost("/loadChannelsMessages", async (HttpContext context, CancellationToken ct, TelegramClientApiService service) =>
             {
                 await service.LoadMissingChannelsAndMessages(context.GetUserId(), ct);

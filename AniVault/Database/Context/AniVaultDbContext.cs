@@ -5,21 +5,27 @@ namespace AniVault.Database.Context;
 public class AniVaultDbContext : DbContext
 {
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _hostEnvironment;
 
-    public AniVaultDbContext(IConfiguration configuration)
+    public AniVaultDbContext(IConfiguration configuration, IHostEnvironment hostEnvironment)
     {
         _configuration = configuration;
+        _hostEnvironment = hostEnvironment;
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
         options.UseNpgsql(_configuration.GetConnectionString("AnimeVaultDB")).UseSnakeCaseNamingConvention();
+        if (_hostEnvironment.IsDevelopment())
+        {
+            options.EnableSensitiveDataLogging();
+        }
     }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TelegramMediaDocument>()
-            .HasIndex(p => p.FileId)
+            .HasIndex(p => new {p.FileId, p.TelegramMessageId})
             .IsUnique(true);
 
         modelBuilder.Entity<TelegramChannel>()
@@ -31,7 +37,7 @@ public class AniVaultDbContext : DbContext
             .IsUnique(true);
         
         modelBuilder.Entity<TelegramMessage>()
-            .HasIndex(p => p.MessageId)
+            .HasIndex(p => new {p.MessageId, p.TelegramChannelId})
             .IsUnique(true);
         modelBuilder.Entity<ApiUser>()
             .HasIndex(p => p.ApiKey)

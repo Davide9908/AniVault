@@ -1,8 +1,9 @@
-using System.Reflection;
+
 using AniVault.Database.Context;
 using AniVault.Services.Extensions;
 using Coravel;
 using Coravel.Scheduling.Schedule.Interfaces;
+using System.Linq;
 
 namespace AniVault.Services.ScheduledTasks;
 
@@ -43,6 +44,9 @@ public class StartupTask : BaseTask
                     CalculateInterval(task.IntervalSeconds.Value, scheduledTask)
                         .PreventOverlapping(task.TaskName);
                 }
+                scheduler.Schedule<UpdateManagerSaveStateTask>()
+                    .EveryThirtySeconds()
+                    .PreventOverlapping(nameof(UpdateManagerSaveStateTask));
                 //scheduler.ScheduleInvocableType()
                 // scheduler.Schedule<PowerAlertTask>()
                 //     .EverySeconds(Constants.Every3Seconds)
@@ -64,7 +68,7 @@ public class StartupTask : BaseTask
 
     private static Type GetTypeByName(string name)
     {
-        return AppDomain.CurrentDomain.GetAssemblies()
+        return AppDomain.CurrentDomain.GetAssemblies().AsEnumerable()
             .Reverse()
             .Select(assembly => assembly.GetType(name))
             .FirstOrDefault(t => t is not null)!;

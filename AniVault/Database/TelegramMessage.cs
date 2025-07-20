@@ -6,6 +6,7 @@ namespace AniVault.Database
     [Table(nameof(TelegramMessage))]
     public class TelegramMessage
     {
+        private const int MaxMessageTextLenght = 1000;
         /// <summary>
         /// The id of the table. Do not use with tg client
         /// </summary>
@@ -16,8 +17,13 @@ namespace AniVault.Database
         /// </summary>
         public int MessageId { get; set; }
 
-        [MaxLength(1000)] 
-        public string MessageText { get; set; } = null!;
+        [MaxLength(1000)]
+        public string MessageText
+        {
+            get;
+            set => field = value.Length > MaxMessageTextLenght ? value.Substring(0, MaxMessageTextLenght) : value;
+
+        } = null!;
 
         public DateTime ReceivedDatetime { get; set; }
 
@@ -33,7 +39,7 @@ namespace AniVault.Database
         
         public TelegramMessage()
         {
-            ReceivedDatetime = DateTime.Now;
+            ReceivedDatetime = DateTime.UtcNow;
             MessageStatus = MessageStatus.Active;
         }
 

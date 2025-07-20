@@ -41,7 +41,7 @@ public class TelegramClientApiService
                 Status = tgChannel.flags.HasFlag(Channel.Flags.left) ? ChannelStatus.Deleted : ChannelStatus.Active
             };
             channels.Add(newChannel);
-            if (newChannel.Status == ChannelStatus.Active)
+            if (newChannel.Status == ChannelStatus.Deleted)
             {
                 continue;
             }
@@ -51,6 +51,7 @@ public class TelegramClientApiService
             {
                 TelegramMessage telegramMessage = new()
                 {
+                    MessageId = tgMessage.ID,
                     ReceivedDatetime = tgMessage.Date,
                     UpdateDatetime = tgMessage.edit_date.Ticks != 0 ? tgMessage.edit_date : null,
                     MessageText = tgMessage.message,
@@ -73,9 +74,9 @@ public class TelegramClientApiService
                 {
                     DownloadStatus = DownloadStatus.Ignored
                 };
-                await Task.Delay(Random.Shared.Next(1000, 15000), ct);
-                ct.ThrowIfCancellationRequested();
             }
+            await Task.Delay(Random.Shared.Next(500, 3000), ct);
+            ct.ThrowIfCancellationRequested();
         }
         
         _dbContext.TelegramChannels.AddRange(channels);

@@ -1,5 +1,6 @@
 ﻿
 using AniVault.Database.Context;
+using AniVault.Services.ScheduledTasks;
 using DBType = ASql.ASqlManager.DBType;
 using Coravel;
 using Serilog;
@@ -15,6 +16,8 @@ public static class ServiceBuilderExtension
         services.AddDbContext<AniVaultDbContext>()
             .AddSingleton<TelegramClientService>()
             .AddScoped<TelegramClientApiService>()
+            .AddScoped<UpdateManagerSaveStateTask>()
+            .AddScoped<StartupTask>()
             .AddScheduler()
             .AddSerilog(serilogConfig =>
             {

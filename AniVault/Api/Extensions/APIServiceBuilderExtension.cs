@@ -32,12 +32,13 @@ public static class ApiServiceBuilderExtension
             if (requiresApiKey)
             {
                 
-                if (!context.Request.Headers.TryGetValue("x-api-key", out var key))
+                if (!context.Request.Headers.TryGetValue("x-api-key", out var keySv))
                 {
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Unauthorized");
                     return;
                 }
+                string key = keySv.ToString();
                 var dbContext = context.RequestServices.GetRequiredService<AniVaultDbContext>();
                 var user = dbContext.ApiUsers.FirstOrDefault(u => u.ApiKey == key);
                 if (user is null)
@@ -68,13 +69,15 @@ public static class ApiServiceBuilderExtension
             });
         }
 
-        var todosApi = app.MapGroup("/todos");
-        todosApi.MapGet("/hello", () => "Hello world!");
-        todosApi.MapGet("/helloSecure", (HttpContext context) =>
-            {
-                var userId = (int)context.Items["userId"];
-                return $"hello user {userId}";
-            })
-            .UseSecurity();
+        app.MapTelegramClientApis();
+
+        // var todosApi = app.MapGroup("/todos");
+        // todosApi.MapGet("/hello", () => "Hello world!");
+        // todosApi.MapGet("/helloSecure", (HttpContext context) =>
+        //     {
+        //         var userId = (int)context.Items["userId"];
+        //         return $"hello user {userId}";
+        //     })
+        //     .UseSecurity();
     }
 }
