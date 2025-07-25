@@ -139,4 +139,10 @@ public partial class TelegramClientService
         return history.Messages;
 
     }
+    
+    public async Task<MessageBase[]> GetChannelMessagesFromId(int messageIdOffset, InputPeerChannel tgChannel)
+    {
+        var history = await _tgClient.Messages_GetHistory(tgChannel, min_id: messageIdOffset);
+        return history.Messages;
+    }
 }

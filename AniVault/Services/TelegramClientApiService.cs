@@ -82,4 +82,59 @@ public class TelegramClientApiService
         _dbContext.TelegramChannels.AddRange(channels);
         await _dbContext.SaveChangesAsync(ct);
     }
+
+    public async Task ForceLoadMessageFromIdByDbChannelId(int userId, int dbChannelId ,int messageId, CancellationToken ct = default)
+    {
+        var apiUser = await _dbContext.ApiUsers.GetById(userId).FirstAsync(ct);
+        _log.Info("Api user {apiUser} requested to load all messages of channel db id {channelDbId} from messageId {messageId}", apiUser.ToString(), dbChannelId, messageId);
+
+        TelegramChannel dbChannel = await _dbContext.TelegramChannels
+            .Include(c=>c.TelegramMessages)
+            .FirstAsync(c => c.TelegramChannelId == dbChannelId, ct);
+        if (dbChannel.Status == ChannelStatus.Deleted)
+        {
+            throw new InvalidOperationException($"Channel {dbChannelId} is deleted");
+        }
+
+        var lastDbMessage = dbChannel.TelegramMessages.OrderByDescending(m => m.ReceivedDatetime).First();
+
+        var tgMessages = (await _tgClientService.GetChannelMessagesFromId(lastDbMessage.MessageId,
+                new InputPeerChannel(dbChannel.ChatId, dbChannel.AccessHash)))
+            .OfType<Message>()
+            .ToList();
+        
+        List<TelegramMessage> newMessages = [];
+        foreach (Message tgMessage in tgMessages)
+        {
+            TelegramMessage telegramMessage = new()
+            {
+                MessageId = tgMessage.ID,
+                TelegramChannelId = dbChannel.TelegramChannelId,
+                ReceivedDatetime = tgMessage.Date,
+                UpdateDatetime = tgMessage.edit_date.Ticks != 0 ? tgMessage.edit_date : null,
+                MessageText = tgMessage.message,
+                MessageStatus = MessageStatus.Active
+            };
+            newMessages.Add(telegramMessage);
+                
+            if (tgMessage.media is null)
+            {
+                continue;
+            }
+                
+            var mediaDocument = (tgMessage.media as MessageMediaDocument)?.document as Document;
+            if (mediaDocument is null)
+            {
+                continue;
+            }
+                
+            telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
+            {
+                DownloadStatus = DownloadStatus.Ignored
+            };
+        }
+        
+        _dbContext.TelegramMessages.AddRange(newMessages);
+        await _dbContext.SaveChangesAsync();
+    }
 }
