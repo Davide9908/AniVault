@@ -190,6 +190,9 @@ public partial class TelegramClientService
                 newMessage, filename, document.Filename, document.size, document.mime_type);
             dbContext.TelegramMediaDocuments.Add(newMediaDocument);
         }
+        
+        // var d =await _tgClient.Channels_GetFullChannel(new InputChannel(dbChannel.ChatId, dbChannel.AccessHash));
+        // var maxId = (d.full_chat as ChannelFull).read_inbox_max_id; //per controllare qual è l'ultimo messaggio letto
         await ReadChannelHistory(channel, message.ID); //mark message as read
         
         await dbContext.SaveChangesAsync();
