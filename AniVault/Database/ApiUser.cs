@@ -11,8 +11,10 @@ public class ApiUser
     
     [Key]
     public int ApiUserId { get; set; }
+    
     [MaxLength(50)]
     public string UserName { get; set; }
+    
     [MaxLength(32)]
     public string ApiKey { get; set; }
 

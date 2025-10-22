@@ -30,7 +30,7 @@ public partial class TelegramClientService
     /// <param name="messageId">Message's id to set as read</param>
     private async Task ReadChannelHistory(Channel channel, int messageId)
     {
-        int time = Random.Shared.Next(2000, 10000);
+        int time = Random.Shared.Next(500, 5000);
         await Task.Delay(time);
 
         try

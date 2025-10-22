@@ -1,5 +1,6 @@
 ﻿
 using AniVault.Database.Context;
+using AniVault.Services.Classes;
 using AniVault.Services.ScheduledTasks;
 using DBType = ASql.ASqlManager.DBType;
 using Coravel;
@@ -18,6 +19,7 @@ public static class ServiceBuilderExtension
             .AddScoped<TelegramClientApiService>()
             .AddScoped<UpdateManagerSaveStateTask>()
             .AddScoped<StartupTask>()
+            .AddScoped<DownloadEpisodesTask>()
             .AddScheduler()
             .AddSerilog(serilogConfig =>
             {
@@ -38,12 +40,14 @@ public static class ServiceBuilderExtension
 
                 serilogConfig.WriteTo.Database(DBType.PostgreSQL, connectionString, "system_log",
                     LogEventLevel.Debug, false, 1);
+            })
+            .AddHttpClient<MalApiHttpClient>(options =>
+            {
+                string baseUrl = configuration.GetRequiredSection("MalApiSettings").GetValue<string>("MALApiLink") ?? throw new InvalidOperationException("MalApiSettings : MALApiLink not set");
+                string headerApiId = configuration.GetRequiredSection("MalApiSettings").GetValue<string>("MALApiID") ?? throw new InvalidOperationException("MalApiSettings : MALApiID not set");
+                options.BaseAddress = new Uri(baseUrl);
+                options.DefaultRequestHeaders.Add("X-MAL-CLIENT-ID", headerApiId);
             });
-        // .AddHttpClient<GithubApiHttpClientService>(options =>
-        // {
-        //     options.DefaultRequestHeaders.UserAgent.TryParseAdd(Constants.HeaderUserAgent);
-        //     options.DefaultRequestHeaders.Add("Authorization", configuration["GitHubAccessToken"]);
-        // });
         return services;
     }
 }

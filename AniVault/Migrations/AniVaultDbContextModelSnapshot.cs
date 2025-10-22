@@ -17,49 +17,59 @@ namespace AniVault.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("AniVault.Database.AnimeEpisodesSetting", b =>
+            modelBuilder.Entity("AniVault.Database.AnimeConfiguration", b =>
                 {
-                    b.Property<int>("MALAnimeId")
+                    b.Property<int>("AnimeConfigurationId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("mal_anime_id");
+                        .HasColumnName("anime_configuration_id");
 
-                    b.Property<string>("AnimeFolderPath")
-                        .HasColumnType("text")
-                        .HasColumnName("anime_folder_path");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AnimeConfigurationId"));
 
-                    b.Property<short?>("CourEpisodeNumberGap")
-                        .HasColumnType("smallint")
-                        .HasColumnName("cour_episode_number_gap");
+                    b.Property<string>("AnimeFolderRelativePath")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("anime_folder_relative_path");
 
-                    b.Property<bool>("DownloadLastEpisode")
+                    b.Property<string>("AnimeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("anime_name");
+
+                    b.Property<bool>("AutoDownloadEnabled")
                         .HasColumnType("boolean")
-                        .HasColumnName("download_last_episode");
+                        .HasColumnName("auto_download_enabled");
+
+                    b.Property<short?>("EpisodesNumberOffset")
+                        .HasColumnType("smallint")
+                        .HasColumnName("episodes_number_offset");
 
                     b.Property<string>("FileNameTemplate")
-                        .HasColumnType("text")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
                         .HasColumnName("file_name_template");
 
-                    b.Property<int>("TelegramChannelId")
+                    b.Property<int?>("MyAnimeListId")
                         .HasColumnType("integer")
-                        .HasColumnName("telegram_channel_id");
+                        .HasColumnName("my_anime_list_id");
 
-                    b.Property<bool>("UseGapForEpNum")
-                        .HasColumnType("boolean")
-                        .HasColumnName("use_gap_for_ep_num");
+                    b.HasKey("AnimeConfigurationId")
+                        .HasName("pk_anime_configuration");
 
-                    b.HasKey("MALAnimeId")
-                        .HasName("pk_anime_episodes_setting");
+                    b.HasIndex("AnimeName")
+                        .HasDatabaseName("ix_anime_configuration_anime_name");
 
-                    b.HasIndex("TelegramChannelId")
+                    b.HasIndex("MyAnimeListId")
                         .IsUnique()
-                        .HasDatabaseName("ix_anime_episodes_setting_telegram_channel_id");
+                        .HasDatabaseName("ix_anime_configuration_my_anime_list_id");
 
-                    b.ToTable("AnimeEpisodesSetting");
+                    b.ToTable("AnimeConfiguration");
                 });
 
             modelBuilder.Entity("AniVault.Database.ApiUser", b =>
@@ -129,39 +139,6 @@ namespace AniVault.Migrations
                     b.ToTable("ScheduledTask");
                 });
 
-            modelBuilder.Entity("AniVault.Database.SystemConfigurationParameter", b =>
-                {
-                    b.Property<int>("ConfigurationParameterId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("configuration_parameter_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ConfigurationParameterId"));
-
-                    b.Property<string>("ParameterName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("parameter_name");
-
-                    b.Property<int>("ParameterType")
-                        .HasColumnType("integer")
-                        .HasColumnName("parameter_type");
-
-                    b.Property<string>("ParameterValue")
-                        .HasColumnType("text")
-                        .HasColumnName("parameter_value");
-
-                    b.HasKey("ConfigurationParameterId")
-                        .HasName("pk_system_configuration_parameters");
-
-                    b.HasIndex("ParameterName")
-                        .IsUnique()
-                        .HasDatabaseName("ix_system_configuration_parameters_parameter_name");
-
-                    b.ToTable("system_configuration_parameters", (string)null);
-                });
-
             modelBuilder.Entity("AniVault.Database.TelegramChannel", b =>
                 {
                     b.Property<int>("TelegramChannelId")
@@ -175,18 +152,19 @@ namespace AniVault.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("access_hash");
 
-                    b.Property<bool>("AutoDownloadEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("auto_download_enabled");
-
                     b.Property<string>("ChannelName")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
                         .HasColumnName("channel_name");
 
                     b.Property<long>("ChatId")
                         .HasColumnType("bigint")
                         .HasColumnName("chat_id");
+
+                    b.Property<bool>("IsAnimeChannel")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_anime_channel");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -215,6 +193,14 @@ namespace AniVault.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("access_hash");
 
+                    b.Property<int>("AnimeConfigurationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("anime_configuration_id");
+
+                    b.Property<DateTime>("CreationDateTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creation_date_time");
+
                     b.Property<long>("DataTransmitted")
                         .HasColumnType("bigint")
                         .HasColumnName("data_transmitted");
@@ -222,10 +208,6 @@ namespace AniVault.Migrations
                     b.Property<int>("DownloadStatus")
                         .HasColumnType("integer")
                         .HasColumnName("download_status");
-
-                    b.Property<int?>("ErrorType")
-                        .HasColumnType("integer")
-                        .HasColumnName("error_type");
 
                     b.Property<long>("FileId")
                         .HasColumnType("bigint")
@@ -253,9 +235,9 @@ namespace AniVault.Migrations
                         .HasColumnType("character varying(80)")
                         .HasColumnName("filename_to_update");
 
-                    b.Property<DateTime>("LastUpdate")
+                    b.Property<DateTime>("LastUpdateDateTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_update");
+                        .HasColumnName("last_update_date_time");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
@@ -273,6 +255,9 @@ namespace AniVault.Migrations
 
                     b.HasKey("TelegramMediaDocumentId")
                         .HasName("pk_telegram_media_document");
+
+                    b.HasIndex("AnimeConfigurationId")
+                        .HasDatabaseName("ix_telegram_media_document_anime_configuration_id");
 
                     b.HasIndex("TelegramMessageId")
                         .IsUnique()
@@ -333,26 +318,23 @@ namespace AniVault.Migrations
                     b.ToTable("TelegramMessage");
                 });
 
-            modelBuilder.Entity("AniVault.Database.AnimeEpisodesSetting", b =>
-                {
-                    b.HasOne("AniVault.Database.TelegramChannel", "TelegramChannel")
-                        .WithOne("AnimeEpisodesSetting")
-                        .HasForeignKey("AniVault.Database.AnimeEpisodesSetting", "TelegramChannelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_anime_episodes_setting_telegram_channel_telegram_channel_id");
-
-                    b.Navigation("TelegramChannel");
-                });
-
             modelBuilder.Entity("AniVault.Database.TelegramMediaDocument", b =>
                 {
+                    b.HasOne("AniVault.Database.AnimeConfiguration", "AnimeConfiguration")
+                        .WithMany("RelatedEpisodes")
+                        .HasForeignKey("AnimeConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_telegram_media_document_anime_configuration_anime_configuratio");
+
                     b.HasOne("AniVault.Database.TelegramMessage", "TelegramMessage")
                         .WithOne("MediaDocument")
                         .HasForeignKey("AniVault.Database.TelegramMediaDocument", "TelegramMessageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_telegram_media_document_telegram_message_telegram_message_id");
+
+                    b.Navigation("AnimeConfiguration");
 
                     b.Navigation("TelegramMessage");
                 });
@@ -369,10 +351,13 @@ namespace AniVault.Migrations
                     b.Navigation("TelegramChannel");
                 });
 
+            modelBuilder.Entity("AniVault.Database.AnimeConfiguration", b =>
+                {
+                    b.Navigation("RelatedEpisodes");
+                });
+
             modelBuilder.Entity("AniVault.Database.TelegramChannel", b =>
                 {
-                    b.Navigation("AnimeEpisodesSetting");
-
                     b.Navigation("TelegramMessages");
                 });
 

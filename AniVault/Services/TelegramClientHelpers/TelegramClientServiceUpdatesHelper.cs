@@ -116,7 +116,11 @@ public partial class TelegramClientService
         if (channel.flags.HasFlag(Channel.Flags.left) && dbChannel.Status != ChannelStatus.Deleted)
         {
             dbChannel.Status = ChannelStatus.Deleted;
-            dbChannel.AutoDownloadEnabled = false;
+            if (dbChannel.IsAnimeChannel)
+            {
+                dbContext.AnimeEpisodesSettings.Where(aes=>aes.AutoDownloadEnabled)
+                    .ExecuteUpdate(c=>c.SetProperty(aes=>aes.AutoDownloadEnabled, false));
+            }
         }
 
         if (!channel.flags.HasFlag(Channel.Flags.left) && dbChannel.Status == ChannelStatus.Deleted)
@@ -157,9 +161,7 @@ public partial class TelegramClientService
                 $"Received {nameof(UpdateNewChannelMessage)} update, but the messageBase from the update is not a Message");
         }
         
-        var dbChannel = dbContext.TelegramChannels
-            .Include(tc => tc.AnimeEpisodesSetting)
-            .FirstOrDefault(c => c.ChatId == channel.ID);
+        var dbChannel = dbContext.TelegramChannels.FirstOrDefault(c => c.ChatId == channel.ID);
         
         _log.Info("Update has been received from channel {channelInfo} with message {message}", dbChannel, message.message);
 
@@ -183,11 +185,26 @@ public partial class TelegramClientService
         };
         
         dbContext.TelegramMessages.Add(newMessage);
-        if (message.media is MessageMediaDocument { document: Document document }) //It's the same as message.media is MessageMediaDocument var1 && var1.document is Document var 2
+        if (dbChannel.IsAnimeChannel && message.media is MessageMediaDocument { document: Document document }) //It's the same as "message.media is MessageMediaDocument var1 && var1.document is Document var2"
         {
-            string filename = GetFilenameByMessage(dbChannel.AnimeEpisodesSetting, message.message, document.Filename);
-            TelegramMediaDocument newMediaDocument = new(document.ID, document.access_hash, document.file_reference,
-                newMessage, filename, document.Filename, document.size, document.mime_type);
+            string animeName = GetAnimeNameFromMessageText(message.message);
+            TelegramMediaDocument newMediaDocument;
+            
+            var animeSetting = dbContext.AnimeEpisodesSettings.FirstOrDefault(aes => aes.AnimeName == animeName);
+            if (animeSetting is null)
+            {
+                animeSetting = new AnimeConfiguration(animeName);
+                dbContext.AnimeEpisodesSettings.Add(animeSetting);
+                newMediaDocument = new TelegramMediaDocument(document.ID, document.access_hash, document.file_reference,
+                    newMessage, document.Filename, document.Filename, document.size, document.mime_type, animeSetting);
+            }
+            else
+            {
+                string filename = GetFilenameByMessage(animeSetting, message.message, document.Filename);
+                newMediaDocument = new TelegramMediaDocument(document.ID, document.access_hash, document.file_reference,
+                    newMessage, filename, document.Filename, document.size, document.mime_type, animeSetting);
+            }
+
             dbContext.TelegramMediaDocuments.Add(newMediaDocument);
         }
         
@@ -198,10 +215,10 @@ public partial class TelegramClientService
         await dbContext.SaveChangesAsync();
     }
 
-    private string GetFilenameByMessage(AnimeEpisodesSetting? episodesSetting, string messageText, string filenameFromTelegram)
+    private string GetFilenameByMessage(AnimeConfiguration? episodesSetting, string messageText, string filenameFromTelegram)
     {
-        Match match = RegexUtils.EpRegex().Match(messageText);
-        if (!match.Success)
+        string? epNumber = GetEpNumberFromMessageText(messageText);
+        if (epNumber is null)
         {
             _log.Warning("Ep number could not be extrapolated from message: {message}", messageText);
             return filenameFromTelegram;
@@ -211,7 +228,7 @@ public partial class TelegramClientService
             return filenameFromTelegram;
         }
         
-        string epNumber = match.Value.ToLowerInvariant().Replace("#ep", "");
+        //string epNumber = match.Value.ToLowerInvariant().Replace("#ep", "");
         if (epNumber.Length == 1) //if the ep number is single digit (0-9), I add the 0 in front of it (01, 02, 03 etc...)
         {
             epNumber = epNumber.PadLeft(2, '0');
@@ -219,13 +236,31 @@ public partial class TelegramClientService
         
         string extension = "." + RegexUtils.FileExtensionRegex().Match(filenameFromTelegram).Value;
         
-        if (episodesSetting.CourEpisodeNumberGap.HasValue && episodesSetting.UseGapForEpNum)
+        if (episodesSetting.EpisodesNumberOffset.HasValue)
         {
-            epNumber = (int.Parse(epNumber) + episodesSetting.CourEpisodeNumberGap.Value).ToString();
+            epNumber = (short.Parse(epNumber) + episodesSetting.EpisodesNumberOffset.Value).ToString();
         }
-        return episodesSetting.FileNameTemplate + epNumber + extension;
+        return $"{episodesSetting.FileNameTemplate}{epNumber}{extension}";
     }
 
+    private string GetAnimeNameFromMessageText(string messageText)
+    {
+        return messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[0];
+    }
+    
+    private string? GetEpNumberFromMessageText(string messageText)
+    {
+         string seasonEpisodeLine = messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[1];
+         Match match = RegexUtils.EpRegex().Match(seasonEpisodeLine);
+         if (!match.Success)
+         {
+             return null;
+         }
+
+         int indexE = match.Value.IndexOf('E', StringComparison.InvariantCultureIgnoreCase);
+         return match.Value.Substring(indexE, match.Value.Length - indexE - 1); //for example the string S01E03 has lenght 6 but the 'E' is on index 3 and i need to take only '0' and '3', so i need to take lenght - the index found - 1, otherwise it would try to take 3 characters and it would throw ArgumentOutOfRangeException 
+    }
+    //tutti gli aggiornamenti di update di messaggi
     private void HandleEditChannelMessageUpdate(UpdateEditChannelMessage update, AniVaultDbContext dbContext)
     {
         if (update.message is not Message message)
@@ -233,45 +268,59 @@ public partial class TelegramClientService
             throw new InvalidOperationException(
                 $"Received {nameof(UpdateNewChannelMessage)} update, but the messageBase from the update is not a Message");
         }
-        var dbMessage = dbContext.TelegramMessages
-            .Include(tm=>tm.TelegramChannel)
-                .ThenInclude(c => c.AnimeEpisodesSetting)
-            .Include(tm => tm.MediaDocument)
-            .FirstOrDefault(tm => tm.MessageId == message.ID && tm.TelegramChannel.ChatId == message.Peer.ID);
-        if (dbMessage is null)
-        {
-            _log.Warning("Received channel message update for message {id} - {messageText}, but the message doesn't exist in the database",  message.ID, message.message);
-            return;
-        }
 
-        if (dbMessage.MessageText == message.message)
+        var channel = dbContext.TelegramChannels.FirstOrDefault(c => c.ChatId == message.Peer.ID);
+        if (channel is null)
         {
-            return;
+            _log.Info(
+                "Received channel message update for message {id} - {messageText} from channel id {channelId}, consider handle these updates or remove this message entirely",
+                message.ID, message.message, message.Peer.ID);
         }
-
-        dbMessage.UpdateDatetime = message.edit_date;
-        
-        dbMessage.MessageText = message.message;
-        if (dbMessage.MediaDocument is not null 
-            && dbMessage.MediaDocument.Filename == dbMessage.MediaDocument.FilenameFromTelegram 
-            && dbMessage.TelegramChannel.AnimeEpisodesSetting is not null)
+        else
         {
-            string newFilename = GetFilenameByMessage(dbMessage.TelegramChannel.AnimeEpisodesSetting, message.message, dbMessage.MediaDocument.FilenameFromTelegram);
-            if (newFilename != dbMessage.MediaDocument.FilenameFromTelegram)
-            {
-                //If the media is not being downloaded, I just update his filename
-                if (dbMessage.MediaDocument.DownloadStatus == DownloadStatus.Downloading)
-                {
-                    dbMessage.MediaDocument.FilenameToUpdate = newFilename;
-                }
-                else
-                {
-                    dbMessage.MediaDocument.Filename = newFilename;
-                }
-            }
+            _log.Info(
+                "Received channel message update for message {id} - {messageText} from channel {channel}, consider handle these updates or remove this message entirely",
+                message.ID, message.message, channel);
         }
-
-        dbContext.SaveChanges();
+        // var dbMessage = dbContext.TelegramMessages
+        //     .Include(tm=>tm.TelegramChannel)
+        //         .ThenInclude(c => c.AnimeEpisodesSetting)
+        //     .Include(tm => tm.MediaDocument)
+        //     .FirstOrDefault(tm => tm.MessageId == message.ID && tm.TelegramChannel.ChatId == message.Peer.ID);
+        // if (dbMessage is null)
+        // {
+        //     _log.Warning("Received channel message update for message {id} - {messageText}, but the message doesn't exist in the database",  message.ID, message.message);
+        //     return;
+        // }
+        //
+        // if (dbMessage.MessageText == message.message)
+        // {
+        //     return;
+        // }
+        //
+        // dbMessage.UpdateDatetime = message.edit_date;
+        //
+        // dbMessage.MessageText = message.message;
+        // if (dbMessage.MediaDocument is not null 
+        //     && dbMessage.MediaDocument.Filename == dbMessage.MediaDocument.FilenameFromTelegram 
+        //     && dbMessage.TelegramChannel.AnimeEpisodesSetting is not null)
+        // {
+        //     string newFilename = GetFilenameByMessage(dbMessage.TelegramChannel.AnimeEpisodesSetting, message.message, dbMessage.MediaDocument.FilenameFromTelegram);
+        //     if (newFilename != dbMessage.MediaDocument.FilenameFromTelegram)
+        //     {
+        //         //If the media is not being downloaded, I just update his filename
+        //         if (dbMessage.MediaDocument.DownloadStatus == DownloadStatus.Downloading)
+        //         {
+        //             dbMessage.MediaDocument.FilenameToUpdate = newFilename;
+        //         }
+        //         else
+        //         {
+        //             dbMessage.MediaDocument.Filename = newFilename;
+        //         }
+        //     }
+        // }
+        //
+        // dbContext.SaveChanges();
 
     }
 

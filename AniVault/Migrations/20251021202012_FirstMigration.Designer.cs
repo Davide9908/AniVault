@@ -12,57 +12,98 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AniVault.Migrations
 {
     [DbContext(typeof(AniVaultDbContext))]
-    [Migration("20250706145559_FirstCreateTables")]
-    partial class FirstCreateTables
+    [Migration("20251021202012_FirstMigration")]
+    partial class FirstMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("AniVault.Database.AnimeEpisodesSetting", b =>
+            modelBuilder.Entity("AniVault.Database.AnimeConfiguration", b =>
                 {
-                    b.Property<int>("MALAnimeId")
+                    b.Property<int>("AnimeConfigurationId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("mal_anime_id");
+                        .HasColumnName("anime_configuration_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AnimeConfigurationId"));
 
                     b.Property<string>("AnimeFolderPath")
-                        .HasColumnType("text")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
                         .HasColumnName("anime_folder_path");
 
-                    b.Property<short?>("CourEpisodeNumberGap")
-                        .HasColumnType("smallint")
-                        .HasColumnName("cour_episode_number_gap");
+                    b.Property<string>("AnimeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("anime_name");
 
-                    b.Property<bool>("DownloadLastEpisode")
+                    b.Property<bool>("AutoDownloadEnabled")
                         .HasColumnType("boolean")
-                        .HasColumnName("download_last_episode");
+                        .HasColumnName("auto_download_enabled");
+
+                    b.Property<short?>("EpisodesNumberOffset")
+                        .HasColumnType("smallint")
+                        .HasColumnName("episodes_number_offset");
 
                     b.Property<string>("FileNameTemplate")
-                        .HasColumnType("text")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
                         .HasColumnName("file_name_template");
 
-                    b.Property<int>("TelegramChannelId")
+                    b.Property<int?>("MyAnimeListId")
                         .HasColumnType("integer")
-                        .HasColumnName("telegram_channel_id");
+                        .HasColumnName("my_anime_list_id");
 
-                    b.Property<bool>("UseGapForEpNum")
-                        .HasColumnType("boolean")
-                        .HasColumnName("use_gap_for_ep_num");
+                    b.HasKey("AnimeConfigurationId")
+                        .HasName("pk_anime_configuration");
 
-                    b.HasKey("MALAnimeId")
-                        .HasName("pk_anime_episodes_setting");
+                    b.HasIndex("AnimeName")
+                        .HasDatabaseName("ix_anime_configuration_anime_name");
 
-                    b.HasIndex("TelegramChannelId")
+                    b.HasIndex("MyAnimeListId")
                         .IsUnique()
-                        .HasDatabaseName("ix_anime_episodes_setting_telegram_channel_id");
+                        .HasDatabaseName("ix_anime_configuration_my_anime_list_id");
 
-                    b.ToTable("AnimeEpisodesSetting");
+                    b.ToTable("AnimeConfiguration");
+                });
+
+            modelBuilder.Entity("AniVault.Database.ApiUser", b =>
+                {
+                    b.Property<int>("ApiUserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("api_user_id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ApiUserId"));
+
+                    b.Property<string>("ApiKey")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("api_key");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("user_name");
+
+                    b.HasKey("ApiUserId")
+                        .HasName("pk_api_user");
+
+                    b.HasIndex("ApiKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_api_user_api_key");
+
+                    b.ToTable("ApiUser");
                 });
 
             modelBuilder.Entity("AniVault.Database.ScheduledTask", b =>
@@ -78,7 +119,7 @@ namespace AniVault.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
 
-                    b.Property<int>("IntervalSeconds")
+                    b.Property<int?>("IntervalSeconds")
                         .HasColumnType("integer")
                         .HasColumnName("interval_seconds");
 
@@ -112,7 +153,8 @@ namespace AniVault.Migrations
 
                     b.Property<string>("ParameterName")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("parameter_name");
 
                     b.Property<int>("ParameterType")
@@ -120,7 +162,6 @@ namespace AniVault.Migrations
                         .HasColumnName("parameter_type");
 
                     b.Property<string>("ParameterValue")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("parameter_value");
 
@@ -147,18 +188,19 @@ namespace AniVault.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("access_hash");
 
-                    b.Property<bool>("AutoDownloadEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("auto_download_enabled");
-
                     b.Property<string>("ChannelName")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
                         .HasColumnName("channel_name");
 
                     b.Property<long>("ChatId")
                         .HasColumnType("bigint")
                         .HasColumnName("chat_id");
+
+                    b.Property<bool>("IsAnimeChannel")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_anime_channel");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -167,9 +209,9 @@ namespace AniVault.Migrations
                     b.HasKey("TelegramChannelId")
                         .HasName("pk_telegram_channel");
 
-                    b.HasIndex("ChatId", "AccessHash")
+                    b.HasIndex("ChatId")
                         .IsUnique()
-                        .HasDatabaseName("ix_telegram_channel_chat_id_access_hash");
+                        .HasDatabaseName("ix_telegram_channel_chat_id");
 
                     b.ToTable("TelegramChannel");
                 });
@@ -187,6 +229,14 @@ namespace AniVault.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("access_hash");
 
+                    b.Property<int>("AnimeConfigurationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("anime_configuration_id");
+
+                    b.Property<DateTime>("CreationDateTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creation_date_time");
+
                     b.Property<long>("DataTransmitted")
                         .HasColumnType("bigint")
                         .HasColumnName("data_transmitted");
@@ -195,22 +245,41 @@ namespace AniVault.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("download_status");
 
-                    b.Property<int?>("ErrorType")
-                        .HasColumnType("integer")
-                        .HasColumnName("error_type");
-
                     b.Property<long>("FileId")
                         .HasColumnType("bigint")
                         .HasColumnName("file_id");
 
-                    b.Property<string>("FileName")
+                    b.Property<byte[]>("FileReference")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("file_name");
+                        .HasColumnType("bytea")
+                        .HasColumnName("file_reference");
 
-                    b.Property<DateTime>("LastUpdate")
+                    b.Property<string>("Filename")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("filename");
+
+                    b.Property<string>("FilenameFromTelegram")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("filename_from_telegram");
+
+                    b.Property<string>("FilenameToUpdate")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("filename_to_update");
+
+                    b.Property<DateTime>("LastUpdateDateTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_update");
+                        .HasColumnName("last_update_date_time");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("mime_type");
 
                     b.Property<long>("Size")
                         .HasColumnType("bigint")
@@ -223,13 +292,16 @@ namespace AniVault.Migrations
                     b.HasKey("TelegramMediaDocumentId")
                         .HasName("pk_telegram_media_document");
 
+                    b.HasIndex("AnimeConfigurationId")
+                        .HasDatabaseName("ix_telegram_media_document_anime_configuration_id");
+
                     b.HasIndex("TelegramMessageId")
                         .IsUnique()
                         .HasDatabaseName("ix_telegram_media_document_telegram_message_id");
 
-                    b.HasIndex("FileId", "AccessHash")
+                    b.HasIndex("FileId", "TelegramMessageId")
                         .IsUnique()
-                        .HasDatabaseName("ix_telegram_media_document_file_id_access_hash");
+                        .HasDatabaseName("ix_telegram_media_document_file_id_telegram_message_id");
 
                     b.ToTable("TelegramMediaDocument");
                 });
@@ -247,14 +319,27 @@ namespace AniVault.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("message_id");
 
+                    b.Property<int>("MessageStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("message_status");
+
                     b.Property<string>("MessageText")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
                         .HasColumnName("message_text");
+
+                    b.Property<DateTime>("ReceivedDatetime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_datetime");
 
                     b.Property<int>("TelegramChannelId")
                         .HasColumnType("integer")
                         .HasColumnName("telegram_channel_id");
+
+                    b.Property<DateTime?>("UpdateDatetime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("update_datetime");
 
                     b.HasKey("TelegramMessageId")
                         .HasName("pk_telegram_message");
@@ -262,29 +347,30 @@ namespace AniVault.Migrations
                     b.HasIndex("TelegramChannelId")
                         .HasDatabaseName("ix_telegram_message_telegram_channel_id");
 
+                    b.HasIndex("MessageId", "TelegramChannelId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_telegram_message_message_id_telegram_channel_id");
+
                     b.ToTable("TelegramMessage");
-                });
-
-            modelBuilder.Entity("AniVault.Database.AnimeEpisodesSetting", b =>
-                {
-                    b.HasOne("AniVault.Database.TelegramChannel", "TelegramChannel")
-                        .WithOne("AnimeEpisodesSetting")
-                        .HasForeignKey("AniVault.Database.AnimeEpisodesSetting", "TelegramChannelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_anime_episodes_setting_telegram_channel_telegram_channel_id");
-
-                    b.Navigation("TelegramChannel");
                 });
 
             modelBuilder.Entity("AniVault.Database.TelegramMediaDocument", b =>
                 {
+                    b.HasOne("AniVault.Database.AnimeConfiguration", "AnimeConfiguration")
+                        .WithMany("RelatedEpisodes")
+                        .HasForeignKey("AnimeConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_telegram_media_document_anime_configuration_anime_configuratio");
+
                     b.HasOne("AniVault.Database.TelegramMessage", "TelegramMessage")
-                        .WithOne("MediaDocuments")
+                        .WithOne("MediaDocument")
                         .HasForeignKey("AniVault.Database.TelegramMediaDocument", "TelegramMessageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_telegram_media_document_telegram_message_telegram_message_id");
+
+                    b.Navigation("AnimeConfiguration");
 
                     b.Navigation("TelegramMessage");
                 });
@@ -301,16 +387,19 @@ namespace AniVault.Migrations
                     b.Navigation("TelegramChannel");
                 });
 
+            modelBuilder.Entity("AniVault.Database.AnimeConfiguration", b =>
+                {
+                    b.Navigation("RelatedEpisodes");
+                });
+
             modelBuilder.Entity("AniVault.Database.TelegramChannel", b =>
                 {
-                    b.Navigation("AnimeEpisodesSetting");
-
                     b.Navigation("TelegramMessages");
                 });
 
             modelBuilder.Entity("AniVault.Database.TelegramMessage", b =>
                 {
-                    b.Navigation("MediaDocuments");
+                    b.Navigation("MediaDocument");
                 });
 #pragma warning restore 612, 618
         }

@@ -13,13 +13,12 @@ namespace AniVault.Database
 
         public long AccessHash { get; set; }
         
+        [MaxLength(120)]
         public string ChannelName { get; set; }
-
-        public bool AutoDownloadEnabled { get; set; }
+        
+        public bool IsAnimeChannel { get; set; }
 
         public ChannelStatus Status { get; set; }
-        
-        public AnimeEpisodesSetting? AnimeEpisodesSetting { get; set; }
 
         public List<TelegramMessage> TelegramMessages { get; set; } = [];
 
@@ -32,7 +31,6 @@ namespace AniVault.Database
             ChatId = id;
             AccessHash = accessHash;
             ChannelName = channelName;
-            AutoDownloadEnabled = false;
             Status = ChannelStatus.Active;
         }
 

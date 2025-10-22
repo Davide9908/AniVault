@@ -69,11 +69,11 @@ public class TelegramClientApiService
                 {
                     continue;
                 }
-                
-                telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
-                {
-                    DownloadStatus = DownloadStatus.Ignored
-                };
+                //todo gestire al nuova struttura anche sui load oppure togliere la funzionalità
+                // telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
+                // {
+                //     DownloadStatus = DownloadStatus.Ignored
+                // };
             }
             await Task.Delay(Random.Shared.Next(500, 3000), ct);
             ct.ThrowIfCancellationRequested();
@@ -127,11 +127,11 @@ public class TelegramClientApiService
             {
                 continue;
             }
-                
-            telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
-            {
-                DownloadStatus = DownloadStatus.Ignored
-            };
+            //todo gestire al nuova struttura anche sui load oppure togliere la funzionalità
+            // telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
+            // {
+            //     DownloadStatus = DownloadStatus.Ignored
+            // };
         }
         
         _dbContext.TelegramMessages.AddRange(newMessages);
