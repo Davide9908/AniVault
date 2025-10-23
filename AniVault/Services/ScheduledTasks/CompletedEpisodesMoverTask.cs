@@ -47,13 +47,12 @@ public class CompletedEpisodesMoverTask : TransactionalTask
 
         foreach (var filename in fileNames)
         {
-            if (!dbFiles.ContainsKey(filename))
+            if (!dbFiles.TryGetValue(filename, out AnimeConfiguration? setting))
             {
                 continue;
             }
 
-            AnimeConfiguration setting = dbFiles.GetValueOrDefault(filename, new AnimeConfiguration());
-            if (setting?.AnimeFolderRelativePath is null || setting?.MyAnimeListId is null)
+            if (setting.AnimeFolderRelativePath is null || setting.MyAnimeListId is null)
             {
                 _log.Warning("AnimeConfiguration folder or MAL id are not configured");
                 continue;

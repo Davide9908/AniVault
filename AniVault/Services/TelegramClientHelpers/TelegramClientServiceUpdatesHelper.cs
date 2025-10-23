@@ -15,10 +15,11 @@ public partial class TelegramClientService
         using var scope = _serviceProvider.CreateScope();
         await using var dbContext = scope.ServiceProvider.GetRequiredService<AniVaultDbContext>();
         await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        var animeEpisodeService = scope.ServiceProvider.GetRequiredService<AnimeEpisodeService>();
         switch (update)
         {
             case UpdateNewChannelMessage ncm:
-                await HandleNewChannelMessageUpdate(ncm, dbContext);
+                await HandleNewChannelMessageUpdate(ncm, dbContext, animeEpisodeService);
                 break;
             case UpdateEditChannelMessage uecm: //tutti gli aggiornamenti di update di messaggi
                 HandleEditChannelMessageUpdate(uecm, dbContext);
@@ -118,7 +119,7 @@ public partial class TelegramClientService
             dbChannel.Status = ChannelStatus.Deleted;
             if (dbChannel.IsAnimeChannel)
             {
-                dbContext.AnimeEpisodesSettings.Where(aes=>aes.AutoDownloadEnabled)
+                dbContext.AnimeConfigurations.Where(aes=>aes.AutoDownloadEnabled)
                     .ExecuteUpdate(c=>c.SetProperty(aes=>aes.AutoDownloadEnabled, false));
             }
         }
@@ -138,9 +139,8 @@ public partial class TelegramClientService
 
     }
 
-    private async Task HandleNewChannelMessageUpdate(UpdateNewChannelMessage newChannelMessage, AniVaultDbContext dbContext)
+    private async Task HandleNewChannelMessageUpdate(UpdateNewChannelMessage newChannelMessage, AniVaultDbContext dbContext, AnimeEpisodeService animeEpisodeService)
     {
-        
         ChatBase chatBase;
         if (!_updateManager.Chats.TryGetValue(newChannelMessage.message.Peer.ID, out chatBase!))
         {
@@ -187,20 +187,20 @@ public partial class TelegramClientService
         dbContext.TelegramMessages.Add(newMessage);
         if (dbChannel.IsAnimeChannel && message.media is MessageMediaDocument { document: Document document }) //It's the same as "message.media is MessageMediaDocument var1 && var1.document is Document var2"
         {
-            string animeName = GetAnimeNameFromMessageText(message.message);
+            string animeName = animeEpisodeService.GetAnimeNameFromMessageText(message.message);
             TelegramMediaDocument newMediaDocument;
             
-            var animeSetting = dbContext.AnimeEpisodesSettings.FirstOrDefault(aes => aes.AnimeName == animeName);
+            var animeSetting = dbContext.AnimeConfigurations.FirstOrDefault(aes => aes.AnimeName == animeName);
             if (animeSetting is null)
             {
                 animeSetting = new AnimeConfiguration(animeName);
-                dbContext.AnimeEpisodesSettings.Add(animeSetting);
+                dbContext.AnimeConfigurations.Add(animeSetting);
                 newMediaDocument = new TelegramMediaDocument(document.ID, document.access_hash, document.file_reference,
                     newMessage, document.Filename, document.Filename, document.size, document.mime_type, animeSetting);
             }
             else
             {
-                string filename = GetFilenameByMessage(animeSetting, message.message, document.Filename);
+                string filename = GetFilenameByMessage(animeSetting, message.message, document.Filename, animeEpisodeService);
                 newMediaDocument = new TelegramMediaDocument(document.ID, document.access_hash, document.file_reference,
                     newMessage, filename, document.Filename, document.size, document.mime_type, animeSetting);
             }
@@ -215,9 +215,9 @@ public partial class TelegramClientService
         await dbContext.SaveChangesAsync();
     }
 
-    private string GetFilenameByMessage(AnimeConfiguration? episodesSetting, string messageText, string filenameFromTelegram)
+    private string GetFilenameByMessage(AnimeConfiguration? episodesSetting, string messageText, string filenameFromTelegram, AnimeEpisodeService animeEpisodeService)
     {
-        string? epNumber = GetEpNumberFromMessageText(messageText);
+        string? epNumber = animeEpisodeService.GetEpNumberFromMessageText(messageText);
         if (epNumber is null)
         {
             _log.Warning("Ep number could not be extrapolated from message: {message}", messageText);
@@ -242,24 +242,7 @@ public partial class TelegramClientService
         }
         return $"{episodesSetting.FileNameTemplate}{epNumber}{extension}";
     }
-
-    private string GetAnimeNameFromMessageText(string messageText)
-    {
-        return messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[0];
-    }
     
-    private string? GetEpNumberFromMessageText(string messageText)
-    {
-         string seasonEpisodeLine = messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[1];
-         Match match = RegexUtils.EpRegex().Match(seasonEpisodeLine);
-         if (!match.Success)
-         {
-             return null;
-         }
-
-         int indexE = match.Value.IndexOf('E', StringComparison.InvariantCultureIgnoreCase);
-         return match.Value.Substring(indexE, match.Value.Length - indexE - 1); //for example the string S01E03 has lenght 6 but the 'E' is on index 3 and i need to take only '0' and '3', so i need to take lenght - the index found - 1, otherwise it would try to take 3 characters and it would throw ArgumentOutOfRangeException 
-    }
     //tutti gli aggiornamenti di update di messaggi
     private void HandleEditChannelMessageUpdate(UpdateEditChannelMessage update, AniVaultDbContext dbContext)
     {

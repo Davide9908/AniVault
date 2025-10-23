@@ -3,6 +3,7 @@ using System;
 using AniVault.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AniVault.Migrations
 {
     [DbContext(typeof(AniVaultDbContext))]
-    partial class AniVaultDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251023173246_AddedCreationDateTimeAnimeConfigurations")]
+    partial class AddedCreationDateTimeAnimeConfigurations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -124,11 +127,11 @@ namespace AniVault.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("interval_seconds");
 
-                    b.Property<DateTime?>("LastFinish")
+                    b.Property<DateTime>("LastFinish")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_finish");
 
-                    b.Property<DateTime?>("LastStart")
+                    b.Property<DateTime>("LastStart")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_start");
 
@@ -245,8 +248,8 @@ namespace AniVault.Migrations
 
                     b.Property<string>("MimeType")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("mime_type");
 
                     b.Property<long>("Size")

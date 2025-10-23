@@ -1,6 +1,7 @@
 ﻿using AniVault.Database;
 using AniVault.Database.Context;
 using AniVault.Database.Extensions;
+using AniVault.Services.Classes;
 using AniVault.Services.Extensions;
 using Microsoft.EntityFrameworkCore;
 using TL;
@@ -12,17 +13,19 @@ public class TelegramClientApiService
     private readonly ILogger<TelegramClientApiService> _log;
     private readonly TelegramClientService _tgClientService;
     private readonly AniVaultDbContext  _dbContext;
+    private readonly AnimeEpisodeService _animeEpisodeService;
 
     private const int NumberOfMessageToCacheDuringLoading = 25;
 
-    public TelegramClientApiService(ILogger<TelegramClientApiService> log, TelegramClientService tgClientService, AniVaultDbContext dbContext)
+    public TelegramClientApiService(ILogger<TelegramClientApiService> log, TelegramClientService tgClientService, AniVaultDbContext dbContext, AnimeEpisodeService animeEpisodeService)
     {
         _log = log;
         _tgClientService = tgClientService;
         _dbContext = dbContext;
+        _animeEpisodeService = animeEpisodeService;
     }
 
-    public async Task LoadMissingChannelsAndMessages(int userId, CancellationToken ct = default)
+    public async Task LoadMissingChannelsAndMessages(int userId, string? mainChannelName, CancellationToken ct = default)
     {
         var apiUser = await _dbContext.ApiUsers.GetById(userId).FirstAsync(ct);
         _log.Info("Api user {apiUser} requested to load all channel with their messages", apiUser.ToString());
@@ -32,6 +35,9 @@ public class TelegramClientApiService
             throw new InvalidOperationException("Cannot load channels: there already exists channel in the database");
         }
 
+        List<AnimeConfiguration> animeConfigurations = _animeEpisodeService.GetAllAnimeConfigurations();
+        List<AnimeConfiguration> createdAnimeConfigurations = [];
+        
         var tgChannels = _tgClientService.GetCachedChannels();
         List<TelegramChannel> channels = new List<TelegramChannel>(tgChannels.Count);
         foreach (var tgChannel in tgChannels)
@@ -63,22 +69,36 @@ public class TelegramClientApiService
                 {
                     continue;
                 }
-                
-                var mediaDocument = (tgMessage.media as MessageMediaDocument)?.document as Document;
-                if (mediaDocument is null)
+
+                if ((tgMessage.media as MessageMediaDocument)?.document is not Document mediaDocument)
                 {
                     continue;
                 }
-                //todo gestire al nuova struttura anche sui load oppure togliere la funzionalità
-                // telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
-                // {
-                //     DownloadStatus = DownloadStatus.Ignored
-                // };
+
+                if (mainChannelName is not null && tgChannel.Title != mainChannelName)
+                {
+                    continue;
+                }
+
+                string animeName = _animeEpisodeService.GetAnimeNameFromMessageText(tgMessage.message);
+                AnimeConfiguration? animeConfiguration;
+                if ((animeConfiguration = animeConfigurations.FirstOrDefault(ac => ac.AnimeName == animeName)) is null)
+                {
+                    animeConfiguration = new AnimeConfiguration(animeName);
+                    createdAnimeConfigurations.Add(animeConfiguration);
+                }
+                
+                
+                telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type, animeConfiguration)
+                {
+                    DownloadStatus = DownloadStatus.Ignored
+                };
             }
             await Task.Delay(Random.Shared.Next(500, 3000), ct);
             ct.ThrowIfCancellationRequested();
         }
         
+        _dbContext.AnimeConfigurations.AddRange(createdAnimeConfigurations);
         _dbContext.TelegramChannels.AddRange(channels);
         await _dbContext.SaveChangesAsync(ct);
     }
@@ -95,6 +115,9 @@ public class TelegramClientApiService
         {
             throw new InvalidOperationException($"Channel {dbChannelId} is deleted");
         }
+        
+        List<AnimeConfiguration> animeConfigurations = _animeEpisodeService.GetAllAnimeConfigurations();
+        List<AnimeConfiguration> createdAnimeConfigurations = [];
 
         var lastDbMessage = dbChannel.TelegramMessages.OrderByDescending(m => m.ReceivedDatetime).First();
 
@@ -127,11 +150,18 @@ public class TelegramClientApiService
             {
                 continue;
             }
-            //todo gestire al nuova struttura anche sui load oppure togliere la funzionalità
-            // telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type)
-            // {
-            //     DownloadStatus = DownloadStatus.Ignored
-            // };
+            
+            string animeName = _animeEpisodeService.GetAnimeNameFromMessageText(tgMessage.message);
+            AnimeConfiguration? animeConfiguration;
+            if ((animeConfiguration = animeConfigurations.FirstOrDefault(ac => ac.AnimeName == animeName)) is null)
+            {
+                animeConfiguration = new AnimeConfiguration(animeName);
+                createdAnimeConfigurations.Add(animeConfiguration);
+            }
+            telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type, animeConfiguration)
+            {
+                DownloadStatus = DownloadStatus.Ignored
+            };
         }
         
         _dbContext.TelegramMessages.AddRange(newMessages);

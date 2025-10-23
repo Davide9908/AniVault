@@ -32,7 +32,7 @@ namespace AniVault.Database
         [MaxLength(80)]
         public string? FilenameToUpdate { get; set; }
         
-        [MaxLength(20)]
+        [MaxLength(30)]
         public string MimeType { get; set; } 
 
         public long Size { get; set; }

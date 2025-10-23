@@ -20,6 +20,8 @@ public static class ServiceBuilderExtension
             .AddScoped<UpdateManagerSaveStateTask>()
             .AddScoped<StartupTask>()
             .AddScoped<DownloadEpisodesTask>()
+            .AddScoped<CompletedEpisodesMoverTask>()
+            .AddScoped<AnimeEpisodeService>()
             .AddScheduler()
             .AddSerilog(serilogConfig =>
             {

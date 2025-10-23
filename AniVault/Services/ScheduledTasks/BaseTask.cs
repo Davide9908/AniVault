@@ -16,7 +16,7 @@ public abstract class BaseTask : IInvocable, ICancellableInvocable
     {
         _log = log;
         _dbContext = dbContext;
-        _taskName = GetType().Name;
+        _taskName = GetType().FullName;
     }
 
     public virtual async Task Invoke()
@@ -64,7 +64,7 @@ public abstract class BaseTask : IInvocable, ICancellableInvocable
             {
                 return taskCustomDb;
             }
-            taskCustomDb.LastStart = DateTime.Now;
+            taskCustomDb.LastStart = DateTime.UtcNow;
             customDbContext.SaveChanges();
             return taskCustomDb;
         }
@@ -74,7 +74,7 @@ public abstract class BaseTask : IInvocable, ICancellableInvocable
         {
             return task;
         }
-        task.LastStart = DateTime.Now;
+        task.LastStart = DateTime.UtcNow;
         _dbContext.SaveChanges();
         return task;
     }
@@ -84,13 +84,13 @@ public abstract class BaseTask : IInvocable, ICancellableInvocable
         if (customDbContext is not null)
         {
             var taskCustomDb = _dbContext!.ScheduledTasks.First(t => t.TaskName == _taskName);
-            taskCustomDb.LastFinish = DateTime.Now;
+            taskCustomDb.LastFinish = DateTime.UtcNow;
             _dbContext.SaveChanges();
             return;
         }
         
         var task = _dbContext!.ScheduledTasks.First(t => t.TaskName == _taskName);
-        task.LastFinish = DateTime.Now;
+        task.LastFinish = DateTime.UtcNow;
         _dbContext.SaveChanges();
     }
     

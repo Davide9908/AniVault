@@ -65,7 +65,6 @@ namespace AniVault.Services;
 
     public async Task<User?> Connect(bool throwIfError = false)
     {
-        _log.Debug("boh 1");
         User? loggedUser = null;
         //Evito che piu task possano effettuare il login
         try
@@ -75,10 +74,8 @@ namespace AniVault.Services;
             {
                 return _tgClient.User;
             }
-            _log.Debug("boh 2");
             _tgClient ??= new Client(ClientConfig);
 
-            _log.Debug("boh 3");
             _tgClient.MaxAutoReconnects = 0;
             _updateManager = _tgClient.WithUpdateManager(Client_OnUpdate, UpdateFile);
 

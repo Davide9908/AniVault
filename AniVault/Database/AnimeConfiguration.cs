@@ -24,6 +24,8 @@ namespace AniVault.Database
 
         public short? EpisodesNumberOffset { get; set; }
         
+        public DateTime CreationDateTime { get; set; }
+        
         public List<TelegramMediaDocument> RelatedEpisodes { get; set; } = [];
 
         /// <summary>
@@ -34,11 +36,7 @@ namespace AniVault.Database
         {
             AnimeName = animeName;
             AutoDownloadEnabled = false;
-        }
-
-        public AnimeConfiguration()
-        {
-            
+            CreationDateTime = DateTime.UtcNow;
         }
     }
 }

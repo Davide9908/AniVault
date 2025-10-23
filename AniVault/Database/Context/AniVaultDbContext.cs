@@ -53,7 +53,7 @@ public class AniVaultDbContext : DbContext
     public virtual DbSet<TelegramMediaDocument> TelegramMediaDocuments { get; set; }
     public virtual DbSet<TelegramMessage> TelegramMessages { get; set; }
     public virtual DbSet<ScheduledTask> ScheduledTasks { get; set; }
-    public virtual DbSet<AnimeConfiguration> AnimeEpisodesSettings { get; set; }
+    public virtual DbSet<AnimeConfiguration> AnimeConfigurations { get; set; }
     public virtual DbSet<ApiUser> ApiUsers { get; set; }
 
 

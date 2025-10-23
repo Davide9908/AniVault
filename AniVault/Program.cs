@@ -35,10 +35,6 @@ using (var scope = app.Services.CreateScope())
     .LogScheduledTaskProgress();
 }
 
-// var c = app.Services.GetService<TelegramClientService>();
-//
-// await c.Connect();
-
 app.Run();
 
 

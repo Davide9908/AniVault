@@ -10,9 +10,9 @@ public static class TelegramClientApis
     public static void MapTelegramClientApis(this WebApplication app)
     {
         var tgClientApi = app.MapGroup("/tgClient").WithTags("telegram Apis");
-        tgClientApi.MapPost("/loadChannelsMessages", async (HttpContext context, CancellationToken ct, TelegramClientApiService service) =>
+        tgClientApi.MapPost("/loadChannelsMessages", async (HttpContext context, CancellationToken ct, TelegramClientApiService service, string? mainChannelName) =>
             {
-                await service.LoadMissingChannelsAndMessages(context.GetUserId(), ct);
+                await service.LoadMissingChannelsAndMessages(context.GetUserId(), mainChannelName, ct);
             })
             .UseSecurity();
         tgClientApi.MapPost("/forceLoadMessageFromIdByDbChannelId",
