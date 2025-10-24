@@ -83,9 +83,9 @@ public abstract class BaseTask : IInvocable, ICancellableInvocable
     {
         if (customDbContext is not null)
         {
-            var taskCustomDb = _dbContext!.ScheduledTasks.First(t => t.TaskName == _taskName);
+            var taskCustomDb = customDbContext.ScheduledTasks.First(t => t.TaskName == _taskName);
             taskCustomDb.LastFinish = DateTime.UtcNow;
-            _dbContext.SaveChanges();
+            customDbContext.SaveChanges();
             return;
         }
         
