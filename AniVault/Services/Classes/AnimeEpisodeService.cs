@@ -16,7 +16,7 @@ public class AnimeEpisodeService
     }
     public string GetAnimeNameFromMessageText(string messageText)
     {
-        return messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[0];
+        return messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[0].Trim();
     }
     
     public string? GetEpNumberFromMessageText(string messageText)

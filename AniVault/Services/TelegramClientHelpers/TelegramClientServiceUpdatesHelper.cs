@@ -190,7 +190,7 @@ public partial class TelegramClientService
             string animeName = animeEpisodeService.GetAnimeNameFromMessageText(message.message);
             TelegramMediaDocument newMediaDocument;
             
-            var animeSetting = dbContext.AnimeConfigurations.FirstOrDefault(aes => aes.AnimeName == animeName);
+            var animeSetting = dbContext.AnimeConfigurations.FirstOrDefault(aes => EF.Functions.ILike(aes.AnimeName, $"%{animeName}%"));
             if (animeSetting is null)
             {
                 animeSetting = new AnimeConfiguration(animeName);

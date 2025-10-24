@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace AniVault.Database;
 
-[Table(nameof(ApiUser))]
+[Table("api_user")]
 public class ApiUser
 {
     private const int RandomNumberLenght = 24;

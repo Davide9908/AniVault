@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AniVault.Database
 {
-    [Table(nameof(TelegramMessage))]
+    [Table("telegram_message")]
     public class TelegramMessage
     {
         private const int MaxMessageTextLenght = 1000;

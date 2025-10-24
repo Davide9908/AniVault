@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AniVault.Database
 {
-    [Table(nameof(TelegramMediaDocument))]
+    [Table("telegram_media_document")]
     public class TelegramMediaDocument
     {
         [Key]

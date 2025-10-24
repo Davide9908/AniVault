@@ -10,14 +10,14 @@ public class CompletedEpisodesMoverTask : TransactionalTask
 {
     private readonly ILogger<CompletedEpisodesMoverTask> _log;
     private readonly AniVaultDbContext _dbContext;
-    private readonly MalApiHttpClient _malApiClient;
+    private readonly MalApiHttpClientService _malApiClientService;
     private readonly string _defaultDownloadLocation;
     private readonly string _libraryPath;
-    public CompletedEpisodesMoverTask(ILogger<CompletedEpisodesMoverTask> log, AniVaultDbContext context, IServiceScopeFactory scopeFactory, MalApiHttpClient apiClient, IConfiguration configuration) : base(log, context, scopeFactory)
+    public CompletedEpisodesMoverTask(ILogger<CompletedEpisodesMoverTask> log, AniVaultDbContext context, IServiceScopeFactory scopeFactory, MalApiHttpClientService apiClientService, IConfiguration configuration) : base(log, context, scopeFactory)
     {
         _log = log;
         _dbContext = context;
-        _malApiClient = apiClient;
+        _malApiClientService = apiClientService;
         
         _defaultDownloadLocation = configuration["DefaultDownloadLocation"] ?? throw new InvalidOperationException("DefaultDownloadLocation configuration missing");
         _libraryPath = configuration["LibraryPath"] ?? throw new InvalidOperationException("LibraryPath configuration missing");;
@@ -32,8 +32,8 @@ public class CompletedEpisodesMoverTask : TransactionalTask
             return;
         }
 
-        List<MALAnimeData>? animeWatchingList = await _malApiClient.GetWatchingAnimeList();
-        List<MALAnimeData>? animeCompletedList = await _malApiClient.GetCompletedAnimeList();
+        List<MALAnimeData>? animeWatchingList = await _malApiClientService.GetWatchingAnimeList();
+        List<MALAnimeData>? animeCompletedList = await _malApiClientService.GetCompletedAnimeList();
         if (animeWatchingList is null || animeCompletedList is null)
         {
             _log.Error("Returned anime lists is null. No work will be done");

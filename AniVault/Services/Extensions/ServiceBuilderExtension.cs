@@ -43,7 +43,7 @@ public static class ServiceBuilderExtension
                 serilogConfig.WriteTo.Database(DBType.PostgreSQL, connectionString, "system_log",
                     LogEventLevel.Debug, false, 1);
             })
-            .AddHttpClient<MalApiHttpClient>(options =>
+            .AddHttpClient<MalApiHttpClientService>(options =>
             {
                 string baseUrl = configuration.GetRequiredSection("MalApiSettings").GetValue<string>("MALApiLink") ?? throw new InvalidOperationException("MalApiSettings : MALApiLink not set");
                 string headerApiId = configuration.GetRequiredSection("MalApiSettings").GetValue<string>("MALApiID") ?? throw new InvalidOperationException("MalApiSettings : MALApiID not set");

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AniVault.Database
 {
-    [Table(nameof(ScheduledTask))]
+    [Table("scheduled_task")]
     public class ScheduledTask
     {
         public int ScheduledTaskId { get; set; }

@@ -82,10 +82,11 @@ public class TelegramClientApiService
 
                 string animeName = _animeEpisodeService.GetAnimeNameFromMessageText(tgMessage.message);
                 AnimeConfiguration? animeConfiguration;
-                if ((animeConfiguration = animeConfigurations.FirstOrDefault(ac => ac.AnimeName == animeName)) is null)
+                if ((animeConfiguration = animeConfigurations.FirstOrDefault(ac => ac.AnimeName.Equals(animeName, StringComparison.InvariantCultureIgnoreCase))) is null)
                 {
                     animeConfiguration = new AnimeConfiguration(animeName);
                     createdAnimeConfigurations.Add(animeConfiguration);
+                    animeConfigurations.Add(animeConfiguration);
                 }
                 
                 

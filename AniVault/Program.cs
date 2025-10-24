@@ -20,6 +20,12 @@ app.SetupApiConfiguration();
 
 using (var scope = app.Services.CreateScope())
 {
+    if (args.Contains("--startSession"))
+    {
+        await using var tgClient = scope.ServiceProvider.GetRequiredService<TelegramClientService>();
+        await tgClient.Connect();
+        return;
+    }
     using (var dbContext = scope.ServiceProvider.GetRequiredService<AniVaultDbContext>())
     {
         dbContext.Migrate();

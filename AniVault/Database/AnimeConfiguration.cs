@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AniVault.Database
 {
-    [Table(nameof(AnimeConfiguration))]
+    [Table("anime_configuration")]
     public class AnimeConfiguration
     {
         public int AnimeConfigurationId { get; set; }

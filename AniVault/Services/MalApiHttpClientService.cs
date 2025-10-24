@@ -3,9 +3,9 @@ using AniVault.Services.Extensions;
 
 namespace AniVault.Services.Classes;
 
-public class MalApiHttpClient
+public class MalApiHttpClientService
 {
-    private readonly ILogger<MalApiHttpClient> _log;
+    private readonly ILogger<MalApiHttpClientService> _log;
     private readonly HttpClient _httpClient;
     private readonly string _malUsername;
 
@@ -17,7 +17,7 @@ public class MalApiHttpClient
     private const string ParameterFieldsValue = "list_status";
     private const string ParameterStatus = "status";
     private const string ParameterNsfw = "nsfw";
-    public MalApiHttpClient(ILogger<MalApiHttpClient> logger, HttpClient httpClient, IConfiguration configuration)
+    public MalApiHttpClientService(ILogger<MalApiHttpClientService> logger, HttpClient httpClient, IConfiguration configuration)
     {
         _log = logger;
         _httpClient = httpClient;
