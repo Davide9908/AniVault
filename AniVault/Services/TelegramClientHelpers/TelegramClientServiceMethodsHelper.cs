@@ -83,7 +83,7 @@ public partial class TelegramClientService
     /// <param name="progress">Process callback method</param>
     /// <exception cref="Exception"/>
     /// <returns>false if client is not connected otherwise true</returns>
-    public async Task DownloadFileAsync(Document document, FileStream outputStream, Client.ProgressCallback? progress = null)
+    public async Task DownloadFileAsync(Document document, FileStream outputStream, Client.ProgressCallback? progress = null, bool disposeOnError = true)
     {
         try
         {
@@ -94,14 +94,13 @@ public partial class TelegramClientService
 
             await _tgClient.DownloadFileAsync(document, outputStream, null, progress);
         }
-        catch (Exception)
-        {
-            throw;
-        }
         finally
         {
-            outputStream.Flush();
-            await outputStream.DisposeAsync();
+            if (disposeOnError)
+            {
+                outputStream.Flush();
+                await outputStream.DisposeAsync();
+            }
         }
         
     }

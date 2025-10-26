@@ -99,7 +99,7 @@ public class DownloadEpisodesTask : BaseTask
                         {
                             DownloadProgressCallback(transmitted, totalSize, downDbFile, progressState, downDbContext,
                                 log);
-                        });
+                        }, retry > 1); //if it's the second try (after a FILE_REFERENCE_EXPIRED exception), dispose, otherwise let me handle it
                 }
                 catch (RpcException rpcEx)
                     when (rpcEx.Code == 400 && rpcEx.Message.Contains("FILE_REFERENCE_EXPIRED"))
