@@ -87,12 +87,12 @@ public class DownloadEpisodesTask : BaseTask
                 file_reference = downDbFile.FileReference
             };
             int retry = 1;
-            while (true)
+            int retryTimeout = 1;
+            bool completed = false;
+            while (retryTimeout < 4 && !completed)
             {
                 try
                 {
-                    int time = Random.Shared.Next(3000, 11000);
-                    await Task.Delay(time);
                     ProgressState progressState = new ProgressState();
                     await _client.DownloadFileAsync(doc, fileStream,
                         (transmitted, totalSize) =>
@@ -112,6 +112,7 @@ public class DownloadEpisodesTask : BaseTask
                         await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
                         return;
                     }
+
                     Messages_MessagesBase? messages = await _client.GetChannelMessagesByIds(
                         downDbFile.TelegramMessage.TelegramChannel.ChatId,
                         downDbFile.TelegramMessage.TelegramChannel.AccessHash, [downDbFile.TelegramMessage.MessageId]);
@@ -143,6 +144,22 @@ public class DownloadEpisodesTask : BaseTask
                     retry++;
                     continue;
                 }
+                catch (RpcException rpcEx)
+                    when (rpcEx.Code == -503 && rpcEx.Message.Contains("Timeout"))
+                {
+                    log.Error(rpcEx, "Timeout error, retrying download. file {filename} to {fileNamePath}", downDbFile.FilenameFromTelegram, fileStream.Name);
+                    try
+                    {
+                        fileStream = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error(ex, "An error occured while creating the file {filePath}", filePath);
+                        return;
+                    }
+                    retryTimeout++;
+                    continue;
+                }
                 catch (Exception ex)
                 {
                     log.Error(ex, "An error occured downloading file {filename} to {fileNamePath}",
@@ -165,7 +182,14 @@ public class DownloadEpisodesTask : BaseTask
                 File.Move(path, newPath);
                 log.Info("File {oldFilePath} renamed to {newFilePath}", path, newPath);
                 
-                break; //exit the loop
+                completed = true; //exit the loop
+            }
+
+            if (retryTimeout == 4)
+            {
+                log.Error("Download in timeout for 3 consecutive times, aborting download");
+                downDbFile.DownloadStatus = DownloadStatus.Error;
+                await downDbContext.SaveChangesAsync();
             }
         }
         catch (Exception ex)
@@ -193,7 +217,7 @@ public class DownloadEpisodesTask : BaseTask
         if (percentage - progressState.OldPercentage > Convert.ToDecimal(1.5))
         {
             progressState.OldPercentage = percentage;
-            log.Info("{percentage}% - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
+            log.Info("{percentage:0.00}% - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
         }
 
     }
@@ -215,6 +239,24 @@ public class DownloadEpisodesTask : BaseTask
             log.Error(deleteException, "Unable to delete file for failed download");
         }
     }
+    
+    private async Task HandleDownloadTimeoutError(string path, TelegramMediaDocument downDbFile, AniVaultDbContext downDbContext, FileStream fileStream, ILogger<DownloadEpisodesTask> log)
+    {
+        downDbFile.LastUpdateDateTime = DateTime.UtcNow;
+        await downDbContext.SaveChangesAsync();
+        await fileStream.DisposeAsync();
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception deleteException)
+        {
+            log.Error(deleteException, "Unable to delete file for failed download");
+        }
+    }
+    
+    
     private class ProgressState
     {
         public decimal OldPercentage { get; set; } = decimal.Zero;
