@@ -204,24 +204,24 @@ public class DownloadEpisodesTask : BaseTask
     private void DownloadProgressCallback(long transmitted, long totalSize, TelegramMediaDocument dbFile, ProgressState progressState, AniVaultDbContext downDbContext, ILogger<DownloadEpisodesTask> log)
     {
 
-        // dbFile.DataTransmitted = transmitted;
-        // dbFile.LastUpdateDateTime = DateTime.UtcNow;
-        // downDbContext.SaveChanges();
-        // if (totalSize == 0)
-        // {
-        //     if (dbFile.Size == 0)
-        //     {
-        //         _log.Warning("Total size is 0, cannot calculate download progress percentage");
-        //         return;
-        //     }
-        //     totalSize = dbFile.Size;
-        // }
-        // decimal percentage = decimal.Divide(transmitted, totalSize) * 100;
-        // if (percentage - progressState.OldPercentage > Convert.ToDecimal(1.5))
-        // {
-        //     progressState.OldPercentage = percentage;
-        //     log.Info("{percentage:0.00}% - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
-        // }
+        dbFile.DataTransmitted = transmitted;
+        dbFile.LastUpdateDateTime = DateTime.UtcNow;
+        downDbContext.SaveChanges();
+        if (totalSize == 0)
+        {
+            if (dbFile.Size == 0)
+            {
+                _log.Warning("Total size is 0, cannot calculate download progress percentage");
+                return;
+            }
+            totalSize = dbFile.Size;
+        }
+        decimal percentage = decimal.Divide(transmitted, totalSize) * 100;
+        if (percentage - progressState.OldPercentage > Convert.ToDecimal(1.5))
+        {
+            progressState.OldPercentage = percentage;
+            log.Info("{percentage:0.00}% - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
+        }
 
     }
 
