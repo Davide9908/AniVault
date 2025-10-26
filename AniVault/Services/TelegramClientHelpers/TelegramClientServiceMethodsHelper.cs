@@ -94,6 +94,10 @@ public partial class TelegramClientService
 
             await _tgClient.DownloadFileAsync(document, outputStream, null, progress);
         }
+        catch (Exception)
+        {
+            throw;
+        }
         finally
         {
             outputStream.Flush();
@@ -109,23 +113,16 @@ public partial class TelegramClientService
             throw new TelegramClientDisconnectedException();
         }
 
-
         InputPeerChannel inputPeerChannel = new InputPeerChannel(channelId, channelAccessHash);
-        List<InputMessage> inputMessageIDs = new List<InputMessage>();
-        List<InputMessage> inputMessageIDs2 = messageIds.Select(id =>
+        
+        List<InputMessage> inputMessageIDs = messageIds.Select(id =>
             new InputMessageID()
             {
                 id = id
             } as InputMessage
         ).ToList();
-        foreach (var messageId in messageIds)
-        {
-            InputMessageID id = new InputMessageID();
-            id.id = messageId;
-            inputMessageIDs.Add(id);
-        }
 
-        return _tgClient.GetMessages(inputPeerChannel, inputMessageIDs2.ToArray());
+        return _tgClient.GetMessages(inputPeerChannel, inputMessageIDs.ToArray());
     }
 
     public async Task<MessageBase[]> GetLastChannelMessages(int count, Channel tgChannel)

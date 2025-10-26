@@ -76,7 +76,9 @@ public class DownloadEpisodesTask : BaseTask
             string path = fileStream.Name;
             await using var downDbContext = downScope.ServiceProvider.GetRequiredService<AniVaultDbContext>();
             var downDbFile =
-                downDbContext.TelegramMediaDocuments.First(md =>
+                downDbContext.TelegramMediaDocuments
+                    .Include(f=>f.TelegramMessage.TelegramChannel)
+                    .First(md =>
                     md.TelegramMediaDocumentId == dbFile.TelegramMediaDocumentId);
             Document doc = new Document()
             {
@@ -95,25 +97,38 @@ public class DownloadEpisodesTask : BaseTask
                         DownloadProgressCallback(transmitted, totalSize, downDbFile, progressState, downDbContext, log);
                     });
             }
+            catch (RpcException rpcEx)
+            when(rpcEx.Code == 400 && rpcEx.Message.Contains("FILE_REFERENCE_EXPIRED"))
+            {
+                Messages_MessagesBase? messages = await _client.GetChannelMessagesByIds(dbFile.TelegramMessage.TelegramChannel.ChatId, dbFile.TelegramMessage.TelegramChannel.AccessHash, [dbFile.TelegramMessage.MessageId]);
+                if (messages is null || messages.Messages.Length == 0)
+                {
+                    log.Error("FILE_REFERENCE_EXPIRED got from downloading, but TG did not returned the message by ID. file {filename} to {fileNamePath}",
+                        downDbFile.FilenameFromTelegram, fileStream.Name);
+
+                    await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
+                    return;
+                }
+
+                byte[]? newFileRef;
+                if ((newFileRef = (((messages.Messages[0] as Message)?.media as MessageMediaDocument)?.document as Document)
+                    ?.file_reference) is null)
+                {
+                    log.Error("FILE_REFERENCE_EXPIRED got from downloading, but the message from TG seems to not have a file or a file_reference. file {filename} to {fileNamePath}",
+                        downDbFile.FilenameFromTelegram, fileStream.Name);
+
+                    await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
+                    return;
+                }
+                downDbFile.FileReference = newFileRef;
+                downDbContext.SaveChanges();
+            }
             catch (Exception ex)
             {
                 log.Error(ex, "An error occured downloading file {filename} to {fileNamePath}",
                     downDbFile.FilenameFromTelegram, fileStream.Name);
-
-                downDbFile.DownloadStatus = DownloadStatus.Error;
-
-                downDbFile.LastUpdateDateTime = DateTime.UtcNow;
-                await downDbContext.SaveChangesAsync();
-                await fileStream.DisposeAsync();
-
-                try
-                {
-                    File.Delete(path);
-                }
-                catch (Exception deleteException)
-                {
-                    log.Error(deleteException, "Unable to delete file for failed download");
-                }
+                
+                await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
 
                 return;
             }
@@ -158,6 +173,24 @@ public class DownloadEpisodesTask : BaseTask
             log.Info("{percentage}%} - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
         }
 
+    }
+
+    private async Task HandleDownloadError(string path, TelegramMediaDocument downDbFile, AniVaultDbContext downDbContext, FileStream fileStream, ILogger<DownloadEpisodesTask> log)
+    {
+        downDbFile.DownloadStatus = DownloadStatus.Error;
+
+        downDbFile.LastUpdateDateTime = DateTime.UtcNow;
+        await downDbContext.SaveChangesAsync();
+        await fileStream.DisposeAsync();
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception deleteException)
+        {
+            log.Error(deleteException, "Unable to delete file for failed download");
+        }
     }
     private class ProgressState
     {
