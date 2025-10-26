@@ -113,8 +113,8 @@ public class DownloadEpisodesTask : BaseTask
                         return;
                     }
                     Messages_MessagesBase? messages = await _client.GetChannelMessagesByIds(
-                        dbFile.TelegramMessage.TelegramChannel.ChatId,
-                        dbFile.TelegramMessage.TelegramChannel.AccessHash, [dbFile.TelegramMessage.MessageId]);
+                        downDbFile.TelegramMessage.TelegramChannel.ChatId,
+                        downDbFile.TelegramMessage.TelegramChannel.AccessHash, [downDbFile.TelegramMessage.MessageId]);
                     if (messages is null || messages.Messages.Length == 0)
                     {
                         log.Error(
