@@ -192,8 +192,7 @@ public class DownloadEpisodesTask : BaseTask
             if (retryTimeout == 4)
             {
                 log.Error("Download in timeout for 3 consecutive times, aborting download");
-                downDbFile.DownloadStatus = DownloadStatus.Error;
-                await downDbContext.SaveChangesAsync();
+                await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
             }
         }
         catch (Exception ex)
