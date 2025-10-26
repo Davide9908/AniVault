@@ -149,6 +149,7 @@ public class DownloadEpisodesTask : BaseTask
                 catch (RpcException rpcEx)
                     when (rpcEx.Code == -503 && rpcEx.Message.Contains("Timeout"))
                 {
+                    await HandleDownloadTimeoutError(path, downDbFile, downDbContext, fileStream, log);
                     log.Error(rpcEx, "Timeout error, retrying download. file {filename} to {fileNamePath}", downDbFile.FilenameFromTelegram, fileStream.Name);
                     try
                     {
