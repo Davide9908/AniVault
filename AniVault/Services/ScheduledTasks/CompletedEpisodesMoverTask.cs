@@ -20,7 +20,7 @@ public class CompletedEpisodesMoverTask : TransactionalTask
         _malApiClientService = apiClientService;
         
         _defaultDownloadLocation = configuration["DefaultDownloadLocation"] ?? throw new InvalidOperationException("DefaultDownloadLocation configuration missing");
-        _libraryPath = configuration["LibraryPath"] ?? throw new InvalidOperationException("LibraryPath configuration missing");;
+        _libraryPath = configuration["LibraryPath"] ?? throw new InvalidOperationException("LibraryPath configuration missing");
     }
 
     protected sealed override async Task Run()
