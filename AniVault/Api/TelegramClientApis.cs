@@ -1,4 +1,6 @@
 ﻿using AniVault.Api.Extensions;
+using AniVault.Database;
+using AniVault.Database.Context;
 using AniVault.Services;
 using AniVault.Services.Classes;
 using Microsoft.AspNetCore.Mvc;
@@ -21,5 +23,18 @@ public static class TelegramClientApis
                 await service.ForceLoadMessageFromIdByDbChannelId(context.GetUserId(), request.DbChannelId, request.MessageId, ct);
             })
             .UseSecurity();
+        tgClientApi.MapGet("/getFileDownloadInError",
+            (HttpContext context, AniVaultDbContext dbContext) =>
+            {
+                return dbContext.TelegramMediaDocuments.Where(x => x.DownloadStatus == DownloadStatus.Error)
+                    .Select(x => x.Filename).ToList();
+            });
+        tgClientApi.MapGet("/retryOneDownload",
+            (HttpContext context, AniVaultDbContext dbContext) =>
+            {
+                var file = dbContext.TelegramMediaDocuments.First(x => x.DownloadStatus == DownloadStatus.Error);
+                file.DownloadStatus = DownloadStatus.NotStarted;
+                dbContext.SaveChanges();
+            });
     }
 }
