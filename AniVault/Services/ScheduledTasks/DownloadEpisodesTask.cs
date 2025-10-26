@@ -86,64 +86,87 @@ public class DownloadEpisodesTask : BaseTask
                 access_hash = downDbFile.AccessHash,
                 file_reference = downDbFile.FileReference
             };
-            try
+            int retry = 1;
+            while (true)
             {
-                int time = Random.Shared.Next(3000, 11000);
-                await Task.Delay(time);
-                ProgressState progressState = new ProgressState();
-                await _client.DownloadFileAsync(doc, fileStream,
-                    (transmitted, totalSize) =>
+                try
+                {
+                    int time = Random.Shared.Next(3000, 11000);
+                    await Task.Delay(time);
+                    ProgressState progressState = new ProgressState();
+                    await _client.DownloadFileAsync(doc, fileStream,
+                        (transmitted, totalSize) =>
+                        {
+                            DownloadProgressCallback(transmitted, totalSize, downDbFile, progressState, downDbContext,
+                                log);
+                        });
+                }
+                catch (RpcException rpcEx)
+                    when (rpcEx.Code == 400 && rpcEx.Message.Contains("FILE_REFERENCE_EXPIRED"))
+                {
+                    if (retry > 1)
                     {
-                        DownloadProgressCallback(transmitted, totalSize, downDbFile, progressState, downDbContext, log);
-                    });
-            }
-            catch (RpcException rpcEx)
-            when(rpcEx.Code == 400 && rpcEx.Message.Contains("FILE_REFERENCE_EXPIRED"))
-            {
-                Messages_MessagesBase? messages = await _client.GetChannelMessagesByIds(dbFile.TelegramMessage.TelegramChannel.ChatId, dbFile.TelegramMessage.TelegramChannel.AccessHash, [dbFile.TelegramMessage.MessageId]);
-                if (messages is null || messages.Messages.Length == 0)
+                        log.Error(
+                            "FILE_REFERENCE_EXPIRED got from downloading, but I'm already retrying a second time, aborting download. file {filename} to {fileNamePath}",
+                            downDbFile.FilenameFromTelegram, fileStream.Name);
+                        await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
+                        return;
+                    }
+                    Messages_MessagesBase? messages = await _client.GetChannelMessagesByIds(
+                        dbFile.TelegramMessage.TelegramChannel.ChatId,
+                        dbFile.TelegramMessage.TelegramChannel.AccessHash, [dbFile.TelegramMessage.MessageId]);
+                    if (messages is null || messages.Messages.Length == 0)
+                    {
+                        log.Error(
+                            "FILE_REFERENCE_EXPIRED got from downloading, but TG did not returned the message by ID. file {filename} to {fileNamePath}",
+                            downDbFile.FilenameFromTelegram, fileStream.Name);
+
+                        await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
+                        return;
+                    }
+
+                    byte[]? newFileRef;
+                    if ((newFileRef =
+                            (((messages.Messages[0] as Message)?.media as MessageMediaDocument)?.document as Document)
+                            ?.file_reference) is null)
+                    {
+                        log.Error(
+                            "FILE_REFERENCE_EXPIRED got from downloading, but the message from TG seems to not have a file or a file_reference. file {filename} to {fileNamePath}",
+                            downDbFile.FilenameFromTelegram, fileStream.Name);
+
+                        await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
+                        return;
+                    }
+
+                    downDbFile.FileReference = newFileRef;
+                    downDbContext.SaveChanges();
+                    retry++;
+                    continue;
+                }
+                catch (Exception ex)
                 {
-                    log.Error("FILE_REFERENCE_EXPIRED got from downloading, but TG did not returned the message by ID. file {filename} to {fileNamePath}",
+                    log.Error(ex, "An error occured downloading file {filename} to {fileNamePath}",
                         downDbFile.FilenameFromTelegram, fileStream.Name);
 
                     await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
+
                     return;
                 }
 
-                byte[]? newFileRef;
-                if ((newFileRef = (((messages.Messages[0] as Message)?.media as MessageMediaDocument)?.document as Document)
-                    ?.file_reference) is null)
-                {
-                    log.Error("FILE_REFERENCE_EXPIRED got from downloading, but the message from TG seems to not have a file or a file_reference. file {filename} to {fileNamePath}",
-                        downDbFile.FilenameFromTelegram, fileStream.Name);
+                downDbFile.DownloadStatus = DownloadStatus.Completed;
+                downDbFile.LastUpdateDateTime = DateTime.UtcNow;
 
-                    await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
-                    return;
-                }
-                downDbFile.FileReference = newFileRef;
-                downDbContext.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex, "An error occured downloading file {filename} to {fileNamePath}",
-                    downDbFile.FilenameFromTelegram, fileStream.Name);
+                await downDbContext.SaveChangesAsync();
+                await fileStream.DisposeAsync();
+                log.Info("Download of file {filename} to {fileNamePath} completed", downDbFile.FilenameFromTelegram,
+                    fileStream.Name);
+
+                string newPath = path.Replace(DownloadingPrefix, String.Empty);
+                File.Move(path, newPath);
+                log.Info("File {oldFilePath} renamed to {newFilePath}", path, newPath);
                 
-                await HandleDownloadError(path, downDbFile, downDbContext, fileStream, log);
-
-                return;
+                break; //exit the loop
             }
-
-            downDbFile.DownloadStatus = DownloadStatus.Completed;
-            downDbFile.LastUpdateDateTime = DateTime.UtcNow;
-
-            await downDbContext.SaveChangesAsync();
-            await fileStream.DisposeAsync();
-            log.Info("Download of file {filename} to {fileNamePath} completed", downDbFile.FilenameFromTelegram,
-                fileStream.Name);
-            
-            string newPath = path.Replace(DownloadingPrefix, String.Empty);
-            File.Move(path, newPath);
-            log.Info("File {oldFilePath} renamed to {newFilePath}", path, newPath);
         }
         catch (Exception ex)
         {
