@@ -29,7 +29,7 @@ public static class TelegramClientApis
                 return dbContext.TelegramMediaDocuments.Where(x => x.DownloadStatus == DownloadStatus.Error)
                     .Select(x => x.Filename).ToList();
             });
-        tgClientApi.MapGet("/retryOneDownload",
+        tgClientApi.MapPost("/retryOneDownload",
             (HttpContext context, AniVaultDbContext dbContext) =>
             {
                 var file = dbContext.TelegramMediaDocuments.First(x => x.DownloadStatus == DownloadStatus.Error);
