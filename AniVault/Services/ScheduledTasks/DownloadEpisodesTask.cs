@@ -142,6 +142,15 @@ public class DownloadEpisodesTask : BaseTask
         dbFile.DataTransmitted = transmitted;
         dbFile.LastUpdateDateTime = DateTime.UtcNow;
         downDbContext.SaveChanges();
+        if (totalSize == 0)
+        {
+            if (dbFile.Size == 0)
+            {
+                _log.Warning("Total size is 0, cannot calculate download progress percentage");
+                return;
+            }
+            totalSize = dbFile.Size;
+        }
         decimal percentage = decimal.Divide(transmitted, totalSize) * 100;
         if (percentage - progressState.OldPercentage > Convert.ToDecimal(1.5))
         {
