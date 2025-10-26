@@ -157,8 +157,8 @@ public partial class TelegramClientService
         }
         if (newChannelMessage.message is not Message message)
         {
-            throw new InvalidOperationException(
-                $"Received {nameof(UpdateNewChannelMessage)} update, but the messageBase from the update is not a Message");
+            _log.Warning("Received {update} update, but the messageBase from the update is not a Message", nameof(UpdateNewChannelMessage));
+            return;
         }
         
         var dbChannel = dbContext.TelegramChannels.FirstOrDefault(c => c.ChatId == channel.ID);
