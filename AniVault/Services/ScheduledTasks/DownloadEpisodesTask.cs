@@ -193,7 +193,7 @@ public class DownloadEpisodesTask : BaseTask
         if (percentage - progressState.OldPercentage > Convert.ToDecimal(1.5))
         {
             progressState.OldPercentage = percentage;
-            log.Info("{percentage}%} - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
+            log.Info("{percentage}% - Downloading file {fileName}: {transmitted}/{totalSize}", percentage, dbFile.Filename, transmitted, totalSize);
         }
 
     }
