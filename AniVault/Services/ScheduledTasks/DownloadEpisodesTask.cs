@@ -140,8 +140,10 @@ public class DownloadEpisodesTask : BaseTask
                     }
 
                     downDbFile.FileReference = newFileRef;
+                    doc.file_reference = newFileRef;
                     downDbContext.SaveChanges();
                     retry++;
+                    await Task.Delay(1000);
                     continue;
                 }
                 catch (RpcException rpcEx)
@@ -158,6 +160,7 @@ public class DownloadEpisodesTask : BaseTask
                         return;
                     }
                     retryTimeout++;
+                    await Task.Delay(2000);
                     continue;
                 }
                 catch (Exception ex)
