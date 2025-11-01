@@ -29,7 +29,7 @@ public class AnimeEpisodeService
         }
 
         int indexE = match.Value.IndexOf('E', StringComparison.InvariantCultureIgnoreCase);
-        return match.Value.Substring(indexE, match.Value.Length - indexE - 1); //for example the string S01E03 has lenght 6 but the 'E' is on index 3 and i need to take only '0' and '3', so i need to take lenght - the index found - 1, otherwise it would try to take 3 characters and it would throw ArgumentOutOfRangeException 
+        return match.Value.Substring(indexE + 1, match.Value.Length - indexE - 1); //for example the string S01E03 has lenght 6 but the 'E' is on index 3 and i need to take only '0' and '3', so i need to take lenght - the index found - 1, otherwise it would try to take 3 characters and it would throw ArgumentOutOfRangeException 
     }
 
     public List<AnimeConfiguration> GetAllAnimeConfigurations()
