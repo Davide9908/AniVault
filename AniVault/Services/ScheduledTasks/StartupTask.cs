@@ -40,28 +40,17 @@ public class StartupTask : BaseTask
                         continue;
                     }
                     
-                    var scheduledTask = scheduler.ScheduleInvocableType(GetTypeByName(task.TaskName));
-                    CalculateInterval(task.IntervalSeconds.Value, scheduledTask)
-                        .PreventOverlapping(task.TaskName);
+                    IScheduleInterval? scheduledTask = scheduler.ScheduleInvocableType(GetTypeByName(task.TaskName));
+                    IScheduledEventConfiguration eventConfiguration = CalculateInterval(task.IntervalSeconds.Value, scheduledTask);
+                    if (!task.OverlapEnabled)
+                    {
+                        eventConfiguration.PreventOverlapping(task.TaskName);
+                    }
                 }
                 scheduler.Schedule<UpdateManagerSaveStateTask>()
                     .EveryThirtySeconds()
                     .PreventOverlapping(nameof(UpdateManagerSaveStateTask));
-                //scheduler.ScheduleInvocableType()
-                // scheduler.Schedule<PowerAlertTask>()
-                //     .EverySeconds(Constants.Every3Seconds)
-                //     .PreventOverlapping(nameof(PowerAlertTask));
-                // scheduler.Schedule<GithubReleasesCheckerTask>()
-                //     .DailyAtHour(14)
-                //     .Zoned(TimeZoneInfo.Local)
-                //     .PreventOverlapping(nameof(GithubReleasesCheckerTask));
-                // scheduler.Schedule<GithubReleaseDownloadTask>()
-                //     .EveryThirtyMinutes()
-                //     .PreventOverlapping(nameof(GithubReleaseDownloadTask))
-                //     .RunOnceAtStart();
-                // scheduler.Schedule<SendReleaseAssetTask>()
-                //     .Cron(Constants.Every25MinutesCron)
-                //     .PreventOverlapping(nameof(SendReleaseAssetTask));
+                
             })
             .LogScheduledTaskProgress();
     }

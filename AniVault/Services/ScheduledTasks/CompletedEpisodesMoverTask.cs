@@ -105,7 +105,7 @@ public class CompletedEpisodesMoverTask : TransactionalTask
         string[] files;
         try
         {
-            files = Directory.GetFiles(downloadFolder).Select(Path.GetFileName).ToArray();
+            files = Directory.GetFiles(downloadFolder).Select(Path.GetFileName).ToArray()!;
         }
         catch (Exception ex)
         {

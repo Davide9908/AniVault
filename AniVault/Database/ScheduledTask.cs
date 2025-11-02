@@ -12,6 +12,7 @@ namespace AniVault.Database
         public DateTime? LastFinish { get; set; }
         public bool Enabled { get; set; }
         public int? IntervalSeconds { get; set; }
+        public bool OverlapEnabled { get; set; }
 
     }
 }

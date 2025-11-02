@@ -16,7 +16,7 @@ public abstract class BaseTask : IInvocable, ICancellableInvocable
     {
         _log = log;
         _dbContext = dbContext;
-        _taskName = GetType().FullName;
+        _taskName = GetType().FullName!;
     }
 
     public virtual async Task Invoke()
