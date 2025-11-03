@@ -12,38 +12,46 @@ public partial class TelegramClientService
 {
     private async Task Client_OnUpdate(Update update)
     {
-        using var scope = _serviceProvider.CreateScope();
-        await using var dbContext = scope.ServiceProvider.GetRequiredService<AniVaultDbContext>();
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        var animeEpisodeService = scope.ServiceProvider.GetRequiredService<AnimeEpisodeService>();
-        switch (update)
+        try
         {
-            case UpdateNewChannelMessage ncm:
-                await HandleNewChannelMessageUpdate(ncm, dbContext, animeEpisodeService);
-                break;
-            case UpdateEditChannelMessage uecm: //tutti gli aggiornamenti di update di messaggi
-                HandleEditChannelMessageUpdate(uecm, dbContext);
-                break;
-            case UpdateDeleteChannelMessages udcm: 
-                HandleDeleteChannelMessagesUpdate(udcm, dbContext);
-                break;
-            case UpdateChannel channelUpdate:
-                HandleChannelUpdate(channelUpdate, dbContext);
-                break;
-            default:
-                _log.Debug($"Unmanaged update received: {update.GetType().Name}");
-                break;
-            //case UpdateUserTyping uut: Console.WriteLine($"{User(uut.user_id)} is {uut.action}"); break;
-            //case UpdateChatUserTyping ucut: Console.WriteLine($"{Peer(ucut.from_id)} is {ucut.action} in {Chat(ucut.chat_id)}"); break;
-            //case UpdateChannelUserTyping ucut2: Console.WriteLine($"{Peer(ucut2.from_id)} is {ucut2.action} in {Chat(ucut2.channel_id)}"); break;
-            //case UpdateChatParticipants { participants: ChatParticipants cp }: Console.WriteLine($"{cp.participants.Length} participants in {Chat(cp.chat_id)}"); break;
-            //case UpdateUserStatus uus: Console.WriteLine($"{User(uus.user_id)} is now {uus.status.GetType().Name[10..]}"); break;
-            //case UpdateUserName uun: Console.WriteLine($"{User(uun.user_id)} has changed profile name: {uun.first_name} {uun.last_name}"); break;
-            //case UpdateUser uu: Console.WriteLine($"{User(uu.user_id)} has changed infos/photo"); break;
-            
-        }
+            using var scope = _serviceProvider.CreateScope();
+            await using var dbContext = scope.ServiceProvider.GetRequiredService<AniVaultDbContext>();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            var animeEpisodeService = scope.ServiceProvider.GetRequiredService<AnimeEpisodeService>();
 
-        await transaction.CommitAsync();
+            switch (update)
+            {
+                case UpdateNewChannelMessage ncm:
+                    await HandleNewChannelMessageUpdate(ncm, dbContext, animeEpisodeService);
+                    break;
+                case UpdateEditChannelMessage uecm: //tutti gli aggiornamenti di update di messaggi
+                    HandleEditChannelMessageUpdate(uecm, dbContext);
+                    break;
+                case UpdateDeleteChannelMessages udcm:
+                    HandleDeleteChannelMessagesUpdate(udcm, dbContext);
+                    break;
+                case UpdateChannel channelUpdate:
+                    HandleChannelUpdate(channelUpdate, dbContext);
+                    break;
+                default:
+                    _log.Debug($"Unmanaged update received: {update.GetType().Name}");
+                    break;
+                //case UpdateUserTyping uut: Console.WriteLine($"{User(uut.user_id)} is {uut.action}"); break;
+                //case UpdateChatUserTyping ucut: Console.WriteLine($"{Peer(ucut.from_id)} is {ucut.action} in {Chat(ucut.chat_id)}"); break;
+                //case UpdateChannelUserTyping ucut2: Console.WriteLine($"{Peer(ucut2.from_id)} is {ucut2.action} in {Chat(ucut2.channel_id)}"); break;
+                //case UpdateChatParticipants { participants: ChatParticipants cp }: Console.WriteLine($"{cp.participants.Length} participants in {Chat(cp.chat_id)}"); break;
+                //case UpdateUserStatus uus: Console.WriteLine($"{User(uus.user_id)} is now {uus.status.GetType().Name[10..]}"); break;
+                //case UpdateUserName uun: Console.WriteLine($"{User(uun.user_id)} has changed profile name: {uun.first_name} {uun.last_name}"); break;
+                //case UpdateUser uu: Console.WriteLine($"{User(uu.user_id)} has changed infos/photo"); break;
+
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "An error occured while processing update {update} from telegram", update);
+        }
     }
 
     private async Task Client_OnOther(IObject arg)
