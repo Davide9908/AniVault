@@ -1,8 +1,8 @@
-﻿using System.Collections.Concurrent;
-using System.Text;
-using AniVault.Database;
-using AniVault.Services.Classes;
+﻿using AniVault.Services.Classes;
 using AniVault.Services.Extensions;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using TL;
 using WTelegram;
 
@@ -11,6 +11,7 @@ namespace AniVault.Services;
     public partial class TelegramClientService : IAsyncDisposable, IDisposable
 {
     private readonly ILogger<TelegramClientService> _log;
+    private readonly Logger _wtcLogger;
     private readonly IServiceProvider _serviceProvider;
     private readonly TGAuthenticationSettings _configuration;
 
@@ -21,9 +22,6 @@ namespace AniVault.Services;
 
     private UpdateManager _updateManager = null!;
 
-    private readonly StreamWriter? _wTelegramLogs;
-
-
     public TelegramClientService(ILogger<TelegramClientService> log, IServiceProvider serviceProvider, IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
@@ -33,13 +31,34 @@ namespace AniVault.Services;
         var logPath = configuration["WTelegramClientLogPath"];
         if (!string.IsNullOrWhiteSpace(logPath))
         {
-            _wTelegramLogs = new StreamWriter(logPath, true, Encoding.UTF8) { AutoFlush = true };
-            Helpers.Log += (lvl, str) => _wTelegramLogs.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{"TDIWE!"[lvl]}] {str}");
+            _wtcLogger = new LoggerConfiguration()
+                .WriteTo.File(
+                    path: logPath,
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate:
+                    "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}"
+                )
+                .MinimumLevel.Debug()
+                .CreateLogger();
+            
+            Helpers.Log += WtcLog;
         }
         _semaphoreConnect = new SemaphoreSlim(1);
         _semaphoreDisconnect = new SemaphoreSlim(1);
         
         InitializeNewClient();
+    }
+
+    private void WtcLog(int level, string message)
+    {
+        LogEventLevel logLevel = LogEventLevel.Information;
+        if(Enum.IsDefined(typeof(LogEventLevel), level))
+        {
+            logLevel = (LogEventLevel)level;
+        }
+        _wtcLogger.Write(logLevel, message);
+        
+        //_log!.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{"TDIWE!"[level]}] {message}");
     }
     
     private void InitializeNewClient()
@@ -144,10 +163,7 @@ namespace AniVault.Services;
         await DisconnectAndClearAsync();
         _semaphoreConnect.Dispose();
         _semaphoreDisconnect.Dispose();
-        if (_wTelegramLogs is not null)
-        {
-            await _wTelegramLogs.DisposeAsync();
-        }
+        await _wtcLogger.DisposeAsync();
 
     }
 
@@ -156,10 +172,7 @@ namespace AniVault.Services;
         DisconnectAndClear();
         _semaphoreConnect.Dispose();
         _semaphoreDisconnect.Dispose();
-        if (_wTelegramLogs is not null)
-        {
-            _wTelegramLogs.Dispose();
-        }
+        _wtcLogger.Dispose();
     }
 
 }
