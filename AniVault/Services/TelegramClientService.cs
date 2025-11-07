@@ -1,17 +1,17 @@
 ﻿using AniVault.Services.Classes;
 using AniVault.Services.Extensions;
 using Serilog;
-using Serilog.Core;
 using Serilog.Events;
 using TL;
 using WTelegram;
+using ILogger = Serilog.ILogger;
 
 namespace AniVault.Services;
 
     public partial class TelegramClientService : IAsyncDisposable, IDisposable
 {
     private readonly ILogger<TelegramClientService> _log;
-    private readonly Logger _wtcLogger;
+    private readonly ILogger _wtcLogger;
     private readonly IServiceProvider _serviceProvider;
     private readonly TGAuthenticationSettings _configuration;
 
