@@ -11,7 +11,7 @@ namespace AniVault.Services;
     public partial class TelegramClientService : IAsyncDisposable, IDisposable
 {
     private readonly ILogger<TelegramClientService> _log;
-    private readonly Logger _wtcLogger;
+    private readonly Logger? _wtcLogger;
     private readonly IServiceProvider _serviceProvider;
     private readonly TGAuthenticationSettings _configuration;
 
@@ -56,9 +56,7 @@ namespace AniVault.Services;
         {
             logLevel = (LogEventLevel)level;
         }
-        _wtcLogger.Write(logLevel, message);
-        
-        //_log!.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{"TDIWE!"[level]}] {message}");
+        _wtcLogger!.Write(logLevel, message);
     }
     
     private void InitializeNewClient()
@@ -163,8 +161,10 @@ namespace AniVault.Services;
         await DisconnectAndClearAsync();
         _semaphoreConnect.Dispose();
         _semaphoreDisconnect.Dispose();
-        await _wtcLogger.DisposeAsync();
-
+        if (_wtcLogger != null)
+        {
+            await _wtcLogger.DisposeAsync();
+        }
     }
 
     public void Dispose()
@@ -172,21 +172,7 @@ namespace AniVault.Services;
         DisconnectAndClear();
         _semaphoreConnect.Dispose();
         _semaphoreDisconnect.Dispose();
-        _wtcLogger.Dispose();
+        _wtcLogger?.Dispose();
     }
 
-}
-
-public record ChannelFileUpdate
-{
-    public Channel Channel { get; set; }
-    public Message Message { get; set; }
-    public bool SusChannel { get; set; }
-
-    public ChannelFileUpdate(Channel channel, Message message, bool isSus)
-    {
-        Channel = channel;
-        Message = message;
-        SusChannel = isSus;
-    }
 }
