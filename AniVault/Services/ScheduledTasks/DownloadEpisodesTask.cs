@@ -123,7 +123,7 @@ public class DownloadEpisodesTask : BaseTask
                         _log.Error(ex, "An error occured while creating the file {filePath}", filePath);
                         return;
                     }
-                    retryTimeout++;
+                    retryTimeout = 4;
                     await Task.Delay(2000);
                     continue;
                 }
@@ -153,7 +153,7 @@ public class DownloadEpisodesTask : BaseTask
 
             if (retryTimeout == 4)
             {
-                _log.Error("Download in timeout for 3 consecutive times, aborting download");
+                _log.Error("Download in timeout, aborting download");
                 await HandleDownloadError(filePath, dbFile, fileStream);
             }
         }
