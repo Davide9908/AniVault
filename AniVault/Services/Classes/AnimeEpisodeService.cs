@@ -36,4 +36,26 @@ public class AnimeEpisodeService
     {
         return _dbContext.AnimeConfigurations.ToList();
     }
+    
+    public ReadOnlySpan<char> GetEpNumberFromMessageTextSpan(string messageText)
+    {
+        var textSpan = messageText.AsSpan();
+
+        //Matching span with regex. regex is configured 
+        var matches = RegexUtils.EpRegex().EnumerateMatches(textSpan);
+        if (!matches.MoveNext())
+        {
+            return default;
+        }
+        
+        var matchSpan = textSpan.Slice(matches.Current.Index, matches.Current.Length);
+        
+        //Finding the index of char 'E', then calculating the lenght of the episode number
+        //for example in the string S01E03, 'E' is on index 3, while the total lenght is 6, so the lenght of the ep number is 6 - (3 + 1) = 2 => "03"
+        int indexE = matchSpan.IndexOf('E');
+        int lenghtEpNumber = matchSpan.Length - (indexE + 1);
+        
+        //taking only the episode number part (so the index next to the 'E' for the lenght I calculated earlier)
+        return matchSpan.Slice(indexE + 1, lenghtEpNumber);
+    }
 }

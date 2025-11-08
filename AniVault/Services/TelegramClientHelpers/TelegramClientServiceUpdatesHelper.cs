@@ -225,6 +225,25 @@ public partial class TelegramClientService
 
     private string GetFilenameByMessage(AnimeConfiguration? episodesSetting, string messageText, string filenameFromTelegram, AnimeEpisodeService animeEpisodeService)
     {
+        try
+        {
+            var epNumberSpan = animeEpisodeService.GetEpNumberFromMessageTextSpan(messageText);
+            if (epNumberSpan.IsEmpty)
+            {
+                _log.Warning("SPAN VERSION!!! Ep number could not be extrapolated from message: {message}",
+                    messageText);
+            }
+            else
+            {
+                _log.Info("Episode number extractor span version extracted episode string: {epString}",
+                    epNumberSpan.ToString());
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "GetEpNumberFromMessageTextSpan throws an exception");
+        }
+
         string? epNumber = animeEpisodeService.GetEpNumberFromMessageText(messageText);
         if (epNumber is null)
         {

@@ -32,6 +32,12 @@ public class CompletedEpisodesMoverTask : TransactionalTask
             return;
         }
 
+        if (!fileNames.Any(n => n.EndsWith(".mp4") || n.EndsWith(".mkv")))
+        {
+            _log.Info("No files to check found, no work will be done");
+            return;
+        }
+        
         List<MALAnimeData>? animeWatchingList = await _malApiClientService.GetWatchingAnimeList();
         List<MALAnimeData>? animeCompletedList = await _malApiClientService.GetCompletedAnimeList();
         if (animeWatchingList is null || animeCompletedList is null)
