@@ -91,7 +91,7 @@ public partial class TelegramClientService
             {
                 throw new TelegramClientDisconnectedException();
             }
-            _tgClient.FilePartSize = 128 * 1024;
+            _tgClient.FilePartSize = 64 * 1024;
             await _tgClient.DownloadFileAsync(document, outputStream, null, progress);
         }
         finally
