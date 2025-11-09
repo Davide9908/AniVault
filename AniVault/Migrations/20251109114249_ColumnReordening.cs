@@ -197,7 +197,7 @@ CREATE TABLE public.telegram_media_document_new
 );
 
 ALTER TABLE public.telegram_media_document_new
-    OWNER TO postgres;
+    owner to ""AniVaultUser"";
 
 CREATE INDEX ix_telegram_media_document_anime_configuration_id_temp
     ON public.telegram_media_document_new (anime_configuration_id);
@@ -445,7 +445,7 @@ CREATE TABLE public.telegram_media_document_revert
 );
 
 ALTER TABLE public.telegram_media_document_revert
-    OWNER TO postgres;
+    owner to ""AniVaultUser"";
 
 CREATE INDEX ix_telegram_media_document_anime_config_id_temp_revert
     ON public.telegram_media_document_revert (anime_configuration_id);
