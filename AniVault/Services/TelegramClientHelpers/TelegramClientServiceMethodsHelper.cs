@@ -81,6 +81,7 @@ public partial class TelegramClientService
     /// <param name="document">The file to download from Telegram</param>
     /// <param name="outputStream">Output file stream where to save the data</param>
     /// <param name="progress">Process callback method</param>
+    /// <param name="disposeOnError">Automatically dispose the stream on error</param>
     /// <exception cref="Exception"/>
     /// <returns>false if client is not connected otherwise true</returns>
     public async Task DownloadFileAsync(Document document, FileStream outputStream, Client.ProgressCallback? progress = null, bool disposeOnError = true)

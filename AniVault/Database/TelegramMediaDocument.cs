@@ -10,22 +10,26 @@ namespace AniVault.Database
         public int TelegramMediaDocumentId { get; set; }
         
         public long FileId { get; set; }
-
-        public long AccessHash { get; set; }
         
-        public byte[] FileReference { get; set; }
+        [MaxLength(80)]
+        public string Filename { get; set; }
         
-        [ForeignKey(nameof(TelegramMessage))]
-        public int TelegramMessageId { get; set; }
-        public TelegramMessage TelegramMessage { get; set; }
+        public DownloadStatus DownloadStatus { get; set; }
+        
+        public DateTime CreationDateTime { get; set; }
+        
+        public DateTime LastUpdateDateTime { get; set; }
+        
+        public short Retries { get; set; }
         
         [ForeignKey(nameof(AnimeConfiguration))]
         public int AnimeConfigurationId { get; set; }
         public AnimeConfiguration AnimeConfiguration { get; set; }
-
-        [MaxLength(80)]
-        public string Filename { get; set; }
         
+        [ForeignKey(nameof(TelegramMessage))]
+        public int TelegramMessageId { get; set; }
+        public TelegramMessage TelegramMessage { get; set; }
+
         [MaxLength(100)]
         public string FilenameFromTelegram  {get; set;}
         
@@ -39,11 +43,9 @@ namespace AniVault.Database
 
         public long DataTransmitted { get; set; }
 
-        public DateTime CreationDateTime { get; set; }
+        public long AccessHash { get; set; }
         
-        public DateTime LastUpdateDateTime { get; set; }
-
-        public DownloadStatus DownloadStatus { get; set; }
+        public byte[] FileReference { get; set; }
 
 
         public TelegramMediaDocument()
@@ -52,6 +54,7 @@ namespace AniVault.Database
             CreationDateTime = DateTime.UtcNow;
             LastUpdateDateTime = DateTime.UtcNow;
             DownloadStatus = DownloadStatus.NotStarted;
+            Retries = 0;
         }
 
         public TelegramMediaDocument(long fileId, long accessHash, byte[] fileReference, string filename, string filenameFromTelegram, long size, string mimeType, AnimeConfiguration animeConfiguration) : this()
@@ -88,7 +91,8 @@ namespace AniVault.Database
         Error,
         Completed,
         Aborted,
-        Ignored
+        Ignored,
+        ErrorTimeout
     }
 
 

@@ -45,7 +45,59 @@ public class AniVaultDbContext : DbContext
         modelBuilder.Entity<ApiUser>()
             .HasIndex(p => p.ApiKey)
             .IsUnique(true);
+        TelegramMediaDocumentOrder(modelBuilder);
+    }
 
+    private void TelegramMediaDocumentOrder(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.TelegramMediaDocumentId)
+            .HasColumnOrder(0);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.FileId)
+            .HasColumnOrder(1);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.Filename)
+            .HasColumnOrder(2);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.DownloadStatus)
+            .HasColumnOrder(3);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.CreationDateTime)
+            .HasColumnOrder(4);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.LastUpdateDateTime)
+            .HasColumnOrder(5);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.Retries)
+            .HasColumnOrder(6);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.AnimeConfigurationId)
+            .HasColumnOrder(7);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.TelegramMessageId)
+            .HasColumnOrder(8);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.FilenameFromTelegram)
+            .HasColumnOrder(9);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.FilenameToUpdate)
+            .HasColumnOrder(10);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.MimeType)
+            .HasColumnOrder(11);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.Size)
+            .HasColumnOrder(12);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.DataTransmitted)
+            .HasColumnOrder(13);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.AccessHash)
+            .HasColumnOrder(14);
+        modelBuilder.Entity<TelegramMediaDocument>()
+            .Property(md => md.FileReference)
+            .HasColumnOrder(15);
     }
 
     

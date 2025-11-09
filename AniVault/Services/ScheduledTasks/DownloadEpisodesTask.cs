@@ -28,6 +28,19 @@ public class DownloadEpisodesTask : BaseTask
 
     protected override async Task Run()
     {
+        var downloadsInError = _dbContext.TelegramMediaDocuments
+            .Where(md => md.DownloadStatus == DownloadStatus.ErrorTimeout && md.Retries < 3)
+            .ToList();
+        var downloadToRetry = downloadsInError
+            .Where(md => (md.LastUpdateDateTime - DateTime.Now).TotalHours >= 1)
+            .ToList();
+        foreach (var download in downloadToRetry)
+        {
+            download.DownloadStatus = DownloadStatus.NotStarted;
+        }
+
+        await _dbContext.SaveChangesAsync();
+        
         int downloadOngoingCount = _dbContext.TelegramMediaDocuments.Count(md => md.DownloadStatus == DownloadStatus.Downloading);
         if (downloadOngoingCount >= MaxConcurrentDownload)
         {
@@ -80,12 +93,13 @@ public class DownloadEpisodesTask : BaseTask
                 file_reference = dbFile.FileReference
             };
             
-            int retry = 1;
-            int retryTimeout = 1;
-            bool completed = false;
+            bool retryBool = true;
+            bool gotFileReferenceExpired = false;
             
-            while (retryTimeout < 4 && !completed)
+            while (retryBool)
             {
+                //if no error will occur, i will exit the loop
+                retryBool = false;
                 try
                 {
                     ProgressState progressState = new ProgressState();
@@ -93,19 +107,17 @@ public class DownloadEpisodesTask : BaseTask
                         (transmitted, totalSize) =>
                         {
                             DownloadProgressCallback(transmitted, totalSize, dbFile, progressState);
-                        }, retry > 1); //if it's the second try (after a FILE_REFERENCE_EXPIRED exception), dispose, otherwise let me handle it
-                    
-                    completed = true; //exit the loop
+                        }, gotFileReferenceExpired); //if it's the second try (after a FILE_REFERENCE_EXPIRED exception), dispose, otherwise let me handle it
                 }
                 catch (RpcException rpcEx)
                     when (rpcEx.Code == 400 && rpcEx.Message.Contains("FILE_REFERENCE_EXPIRED"))
                 {
-                    if (await HandleFileReferenceExpired(fileStream, dbFile, retry, filePath, doc))
+                    if (await HandleFileReferenceExpired(fileStream, dbFile, gotFileReferenceExpired, filePath, doc))
                     {
                         return;
                     }
-                    retry++;
-                    
+                    gotFileReferenceExpired = true;
+                    retryBool = true;
                     await Task.Delay(1000);
                     continue;
                 }
@@ -113,7 +125,7 @@ public class DownloadEpisodesTask : BaseTask
                     when (rpcEx.Code == -503 && rpcEx.Message.Contains("Timeout"))
                 {
                     await HandleDownloadTimeoutError(filePath, dbFile, fileStream);
-                    _log.Error(rpcEx, "Timeout error, retrying download. file {filename} to {fileNamePath}", dbFile.FilenameFromTelegram, fileStream.Name);
+                    _log.Error(rpcEx, "Timeout error, retrying later. file {filename} to {fileNamePath}", dbFile.FilenameFromTelegram, fileStream.Name);
                     try
                     {
                         fileStream = File.Open(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
@@ -123,7 +135,7 @@ public class DownloadEpisodesTask : BaseTask
                         _log.Error(ex, "An error occured while creating the file {filePath}", filePath);
                         return;
                     }
-                    retryTimeout = 4;
+                    
                     await Task.Delay(2000);
                     continue;
                 }
@@ -151,11 +163,7 @@ public class DownloadEpisodesTask : BaseTask
                 
             }
 
-            if (retryTimeout == 4)
-            {
-                _log.Error("Download in timeout, aborting download");
-                await HandleDownloadError(filePath, dbFile, fileStream);
-            }
+            
         }
         catch (Exception ex)
         {
@@ -188,11 +196,16 @@ public class DownloadEpisodesTask : BaseTask
 
     }
 
-    private async Task HandleDownloadError(string path, TelegramMediaDocument downDbFile, FileStream fileStream)
+    private async Task HandleDownloadError(string path, TelegramMediaDocument downDbFile, FileStream fileStream, short retries = -1)
     {
         downDbFile.DownloadStatus = DownloadStatus.Error;
 
         downDbFile.LastUpdateDateTime = DateTime.UtcNow;
+
+        if (retries == -1)
+        {
+            downDbFile.Retries++;
+        }
         await _dbContext.SaveChangesAsync();
         await fileStream.DisposeAsync();
 
@@ -209,6 +222,8 @@ public class DownloadEpisodesTask : BaseTask
     private async Task HandleDownloadTimeoutError(string path, TelegramMediaDocument downDbFile, FileStream fileStream)
     {
         downDbFile.LastUpdateDateTime = DateTime.UtcNow;
+        downDbFile.DownloadStatus = DownloadStatus.ErrorTimeout;
+        downDbFile.Retries++;
         await _dbContext.SaveChangesAsync();
         await fileStream.DisposeAsync();
 
@@ -222,15 +237,15 @@ public class DownloadEpisodesTask : BaseTask
         }
     }
 
-    private async ValueTask<bool> HandleFileReferenceExpired(FileStream fileStream, TelegramMediaDocument dbFile, int retry,
+    private async ValueTask<bool> HandleFileReferenceExpired(FileStream fileStream, TelegramMediaDocument dbFile, bool gotFileReferenceExpired,
         string path, Document doc)
     {
-        if (retry > 1)
+        if (gotFileReferenceExpired)
         {
             _log.Error(
                 "FILE_REFERENCE_EXPIRED got from downloading, but I'm already retrying a second time, aborting download. file {filename} to {fileNamePath}",
                 dbFile.FilenameFromTelegram, fileStream.Name);
-            await HandleDownloadError(path, dbFile, fileStream);
+            await HandleDownloadError(path, dbFile, fileStream, 3);
             return true;
         }
 

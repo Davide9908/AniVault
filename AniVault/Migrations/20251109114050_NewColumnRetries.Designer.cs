@@ -3,6 +3,7 @@ using System;
 using AniVault.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AniVault.Migrations
 {
     [DbContext(typeof(AniVaultDbContext))]
-    partial class AniVaultDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251109114050_NewColumnRetries")]
+    partial class NewColumnRetries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -193,93 +196,77 @@ namespace AniVault.Migrations
                     b.Property<int>("TelegramMediaDocumentId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasColumnName("telegram_media_document_id")
-                        .HasColumnOrder(0);
+                        .HasColumnName("telegram_media_document_id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TelegramMediaDocumentId"));
 
                     b.Property<long>("AccessHash")
                         .HasColumnType("bigint")
-                        .HasColumnName("access_hash")
-                        .HasColumnOrder(14);
+                        .HasColumnName("access_hash");
 
                     b.Property<int>("AnimeConfigurationId")
                         .HasColumnType("integer")
-                        .HasColumnName("anime_configuration_id")
-                        .HasColumnOrder(7);
+                        .HasColumnName("anime_configuration_id");
 
                     b.Property<DateTime>("CreationDateTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("creation_date_time")
-                        .HasColumnOrder(4);
+                        .HasColumnName("creation_date_time");
 
                     b.Property<long>("DataTransmitted")
                         .HasColumnType("bigint")
-                        .HasColumnName("data_transmitted")
-                        .HasColumnOrder(13);
+                        .HasColumnName("data_transmitted");
 
                     b.Property<int>("DownloadStatus")
                         .HasColumnType("integer")
-                        .HasColumnName("download_status")
-                        .HasColumnOrder(3);
+                        .HasColumnName("download_status");
 
                     b.Property<long>("FileId")
                         .HasColumnType("bigint")
-                        .HasColumnName("file_id")
-                        .HasColumnOrder(1);
+                        .HasColumnName("file_id");
 
                     b.Property<byte[]>("FileReference")
                         .IsRequired()
                         .HasColumnType("bytea")
-                        .HasColumnName("file_reference")
-                        .HasColumnOrder(15);
+                        .HasColumnName("file_reference");
 
                     b.Property<string>("Filename")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
-                        .HasColumnName("filename")
-                        .HasColumnOrder(2);
+                        .HasColumnName("filename");
 
                     b.Property<string>("FilenameFromTelegram")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("filename_from_telegram")
-                        .HasColumnOrder(9);
+                        .HasColumnName("filename_from_telegram");
 
                     b.Property<string>("FilenameToUpdate")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
-                        .HasColumnName("filename_to_update")
-                        .HasColumnOrder(10);
+                        .HasColumnName("filename_to_update");
 
                     b.Property<DateTime>("LastUpdateDateTime")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_update_date_time")
-                        .HasColumnOrder(5);
+                        .HasColumnName("last_update_date_time");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
-                        .HasColumnName("mime_type")
-                        .HasColumnOrder(11);
+                        .HasColumnName("mime_type");
 
                     b.Property<short>("Retries")
                         .HasColumnType("smallint")
-                        .HasColumnName("retries")
-                        .HasColumnOrder(6);
+                        .HasColumnName("retries");
 
                     b.Property<long>("Size")
                         .HasColumnType("bigint")
-                        .HasColumnName("size")
-                        .HasColumnOrder(12);
+                        .HasColumnName("size");
 
                     b.Property<int>("TelegramMessageId")
                         .HasColumnType("integer")
-                        .HasColumnName("telegram_message_id")
-                        .HasColumnOrder(8);
+                        .HasColumnName("telegram_message_id");
 
                     b.HasKey("TelegramMediaDocumentId")
                         .HasName("pk_telegram_media_document");
