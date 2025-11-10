@@ -28,12 +28,13 @@ public class DownloadEpisodesTask : BaseTask
 
     protected override async Task Run()
     {
-        var downloadsInError = _dbContext.TelegramMediaDocuments
-            .Where(md => md.DownloadStatus == DownloadStatus.ErrorTimeout && md.Retries < 3)
+        var lastUpdateLimit = DateTime.UtcNow.AddHours(-1);
+        var downloadToRetry = _dbContext.TelegramMediaDocuments
+            .Where(md => md.DownloadStatus == DownloadStatus.ErrorTimeout && md.Retries < 3 && md.LastUpdateDateTime <= lastUpdateLimit)
             .ToList();
-        var downloadToRetry = downloadsInError
-            .Where(md => (md.LastUpdateDateTime - DateTime.Now).TotalHours >= 1)
-            .ToList();
+        // var downloadToRetry = downloadsInError
+        //     .Where(md => (md.LastUpdateDateTime - DateTime.Now).TotalHours >= 1)
+        //     .ToList();
         foreach (var download in downloadToRetry)
         {
             download.DownloadStatus = DownloadStatus.NotStarted;
