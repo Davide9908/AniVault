@@ -8,7 +8,7 @@ using Coravel;
 using Coravel.Scheduling.Schedule.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services
@@ -85,15 +85,15 @@ internal sealed class ApiKeySecuritySchemeTransformer(IAuthenticationSchemeProvi
                     operation.Security.Add(new OpenApiSecurityRequirement
                     {
                         {
-                            new OpenApiSecurityScheme
-                            {
-                                Reference = new OpenApiReference
-                                {
-                                    Type = ReferenceType.SecurityScheme,
-                                    Id = "ApiKey"
-                                }
-                            }
-                            ,Array.Empty<string>()
+                            new OpenApiSecuritySchemeReference("ApiKey")
+                            // {
+                            //     Reference = new OpenApiReference
+                            //     {
+                            //         Type = ReferenceType.SecurityScheme,
+                            //         Id = "ApiKey"
+                            //     }
+                            // }
+                            ,[]
                         }
                     });
                 }
