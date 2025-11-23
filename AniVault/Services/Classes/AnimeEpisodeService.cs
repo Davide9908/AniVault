@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using AniVault.Database;
 using AniVault.Database.Context;
+using AniVault.Services.Extensions;
 
 namespace AniVault.Services.Classes;
 
@@ -19,6 +20,7 @@ public class AnimeEpisodeService
         return messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[0].Trim();
     }
     
+    [Obsolete]
     public string? GetEpNumberFromMessageText(string messageText)
     {
         string seasonEpisodeLine = messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[1];
@@ -57,5 +59,61 @@ public class AnimeEpisodeService
         
         //taking only the episode number part (so the index next to the 'E' for the lenght I calculated earlier)
         return matchSpan.Slice(indexE + 1, lenghtEpNumber);
+    }
+
+    public Dictionary<string, AnimeConfiguration> GetAnimeConfigurationByFileNames(string[] fileNames)
+    {
+        Dictionary<string, string[]> calculatedFileNameTemplates = new Dictionary<string, string[]>(fileNames.Length);
+        foreach (var fileName in fileNames)
+        {
+            var textSpan = fileName.AsSpan();
+
+            //Matching span with regex. regex is configured 
+            var matches = RegexUtils.EpRegex().EnumerateMatches(textSpan);
+            if (!matches.MoveNext())
+            {
+                continue;
+            }
+            
+            //For Example SpyxFamily S03E08.mkv
+            //First I find where the season/episode starts
+            var matchSpan = textSpan.Slice(matches.Current.Index);
+            //Then I find the relative index of E on the season/episode span
+            int relativeIndexOfE = matchSpan.IndexOf('E');
+            //It should never be -1 if it matched the regex, better safe than sorry
+            if (relativeIndexOfE == -1)
+            {
+                _log.Info("Filename: {filename}. Could not find 'E' character on the matched span. This should not have happened, but it happened somehow.. ", fileName);
+                continue;
+            }
+            //I calculate the real index. in this example relativeIndexOfE is 3 and matches.Current.Index is 11, so the real index is 14
+            int indexOfE = relativeIndexOfE + matches.Current.Index;
+            
+            //I'm taking all characters fom the start to the 'E' included.
+            string templateNameCalculated = textSpan.Slice(0, indexOfE + 1).ToString();
+            if (calculatedFileNameTemplates.TryGetValue(templateNameCalculated, out var fileNameTemplates))
+            {
+                string[] newArray = new string [fileNameTemplates.Length + 1];
+                fileNameTemplates.CopyTo(newArray);
+                newArray[fileNameTemplates.Length] = templateNameCalculated;
+                calculatedFileNameTemplates[templateNameCalculated] = newArray;
+                continue;
+            }
+            
+            calculatedFileNameTemplates.Add(templateNameCalculated, [fileName]);
+        }
+
+        if (calculatedFileNameTemplates.Count == 0)
+        {
+            return [];
+        }
+
+        var templatesToSearch = calculatedFileNameTemplates.Keys.ToList();
+        return _dbContext.AnimeConfigurations
+            .Where(ac => ac.FileNameTemplate != null && templatesToSearch.Contains(ac.FileNameTemplate))
+            .AsEnumerable()
+            .SelectMany(ac => calculatedFileNameTemplates[ac.FileNameTemplate!]
+                .Select(fileName => new { FileName = fileName, AnimeConfiguration = ac }))
+            .ToDictionary(ac => ac.FileName, ac => ac.AnimeConfiguration);
     }
 }

@@ -11,13 +11,15 @@ public class CompletedEpisodesMoverTask : TransactionalTask
     private readonly ILogger<CompletedEpisodesMoverTask> _log;
     private readonly AniVaultDbContext _dbContext;
     private readonly MalApiHttpClientService _malApiClientService;
+    private readonly AnimeEpisodeService _animeEpisodeService;
     private readonly string _defaultDownloadLocation;
     private readonly string _libraryPath;
-    public CompletedEpisodesMoverTask(ILogger<CompletedEpisodesMoverTask> log, AniVaultDbContext context, IServiceScopeFactory scopeFactory, MalApiHttpClientService apiClientService, IConfiguration configuration) : base(log, context, scopeFactory)
+    public CompletedEpisodesMoverTask(ILogger<CompletedEpisodesMoverTask> log, AniVaultDbContext context, IServiceScopeFactory scopeFactory, MalApiHttpClientService apiClientService, IConfiguration configuration, AnimeEpisodeService animeEpisodeService) : base(log, context, scopeFactory)
     {
         _log = log;
         _dbContext = context;
         _malApiClientService = apiClientService;
+        _animeEpisodeService = animeEpisodeService;
         
         _defaultDownloadLocation = configuration["DefaultDownloadLocation"] ?? throw new InvalidOperationException("DefaultDownloadLocation configuration missing");
         _libraryPath = configuration["LibraryPath"] ?? throw new InvalidOperationException("LibraryPath configuration missing");
@@ -39,21 +41,22 @@ public class CompletedEpisodesMoverTask : TransactionalTask
         }
         
         List<MALAnimeData>? animeWatchingList = await _malApiClientService.GetWatchingAnimeList();
-        List<MALAnimeData>? animeCompletedList = await _malApiClientService.GetCompletedAnimeList();
-        if (animeWatchingList is null || animeCompletedList is null)
+        if (animeWatchingList is null)
         {
-            _log.Error("Returned anime lists is null. No work will be done");
+            _log.Error("Returned watching anime lists is null. No work will be done");
             return;
         }
 
 
-        var dbFiles = _dbContext.TelegramMediaDocuments.Where(md => md.DownloadStatus == DownloadStatus.Completed && fileNames.Contains(md.Filename))
-                                                                                    .Include(md=>md.AnimeConfiguration)
-                                                                                    .ToDictionary(md => md.Filename, md => md.AnimeConfiguration);
+        // var dbFiles = _dbContext.TelegramMediaDocuments.Where(md => md.DownloadStatus == DownloadStatus.Completed &&  fileNames.Contains(md.Filename))
+        //                                                                             .Include(md=>md.AnimeConfiguration)
+        //                                                                             .ToDictionary(md => md.Filename, md => md.AnimeConfiguration);
+        
+        var fileConfigurationDictionary = _animeEpisodeService.GetAnimeConfigurationByFileNames(fileNames);
 
         foreach (var filename in fileNames)
         {
-            if (!dbFiles.TryGetValue(filename, out AnimeConfiguration? setting))
+            if (!fileConfigurationDictionary.TryGetValue(filename, out AnimeConfiguration? setting))
             {
                 continue;
             }
@@ -90,8 +93,18 @@ public class CompletedEpisodesMoverTask : TransactionalTask
             }
             //I look first on watching list. If it's not present, i look into the completed ones
             var animeEntry = animeWatchingList.FirstOrDefault(l => l.node.id == setting.MyAnimeListId)?.list_status;
-            animeEntry ??= animeCompletedList.FirstOrDefault(l => l.node.id == setting.MyAnimeListId)?.list_status;
-            //run the check again to see if i found it
+            if (animeEntry is null)
+            {
+                List<MALAnimeData>? animeCompletedList = await _malApiClientService.GetCompletedAnimeList();
+                if (animeCompletedList is null)
+                {
+                    _log.Error("Returned completed anime lists is null. Stopping here");
+                    return;
+                }
+                animeEntry = animeCompletedList.FirstOrDefault(l => l.node.id == setting.MyAnimeListId)?.list_status;
+            }
+            
+            //run the check again to see if I found it
             if (animeEntry is null)
             {
                 _log.Warning("Anime with id {malId} not found in MAL", setting.MyAnimeListId);

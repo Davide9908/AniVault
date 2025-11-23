@@ -30,6 +30,9 @@ public class AniVaultDbContext : DbContext
         modelBuilder.Entity<AnimeConfiguration>()
             .HasIndex(ac => ac.MyAnimeListId)
             .IsUnique(true);
+
+        modelBuilder.Entity<AnimeConfiguration>()
+            .HasIndex(ac => ac.FileNameTemplate);
         
         modelBuilder.Entity<TelegramMediaDocument>()
             .HasIndex(p => new {p.FileId, p.TelegramMessageId})
