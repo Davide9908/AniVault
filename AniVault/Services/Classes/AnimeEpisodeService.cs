@@ -93,10 +93,10 @@ public class AnimeEpisodeService
             string templateNameCalculated = textSpan.Slice(0, indexOfE + 1).ToString();
             if (calculatedFileNameTemplates.TryGetValue(templateNameCalculated, out var fileNameTemplates))
             {
-                string[] newArray = new string [fileNameTemplates.Length + 1];
-                fileNameTemplates.CopyTo(newArray);
-                newArray[fileNameTemplates.Length] = templateNameCalculated;
-                calculatedFileNameTemplates[templateNameCalculated] = newArray;
+                Array.Resize(ref fileNameTemplates, fileNameTemplates.Length + 1);
+                //one from the end
+                fileNameTemplates[^1] = templateNameCalculated;
+                calculatedFileNameTemplates[templateNameCalculated] = fileNameTemplates;
                 continue;
             }
             
