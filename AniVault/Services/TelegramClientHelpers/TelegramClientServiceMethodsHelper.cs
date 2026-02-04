@@ -93,7 +93,7 @@ public partial class TelegramClientService
                 throw new TelegramClientDisconnectedException();
             }
 
-            await _tgClient.DownloadFileAsync(document, outputStream, null, progress);
+            await _tgClient.DownloadFileAsync(document, outputStream, thumbSize: null, progress);
         }
         finally
         {
