@@ -12,6 +12,7 @@ public partial class TelegramClientService
 {
     private async Task Client_OnUpdate(Update update)
     {
+        UpdateLastPong();
         try
         {
             using var scope = _serviceProvider.CreateScope();
@@ -86,6 +87,7 @@ public partial class TelegramClientService
 
                 break;
             case Pong:
+                UpdateLastPong();
                 break;
             default:
                 _log.Warning($"Client_OnOther: Other - {arg.GetType().Name}");

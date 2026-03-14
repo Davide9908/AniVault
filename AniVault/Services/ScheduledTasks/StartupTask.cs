@@ -50,6 +50,9 @@ public class StartupTask : BaseTask
                 scheduler.Schedule<UpdateManagerSaveStateTask>()
                     .EveryThirtySeconds()
                     .PreventOverlapping(nameof(UpdateManagerSaveStateTask));
+                scheduler.Schedule<TelegramClientCheckerTask>()
+                    .EveryThirtySeconds()
+                    .PreventOverlapping(nameof(TelegramClientCheckerTask));
                 
             })
             .LogScheduledTaskProgress();

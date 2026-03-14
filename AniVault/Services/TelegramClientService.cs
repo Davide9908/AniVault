@@ -8,7 +8,7 @@ using WTelegram;
 
 namespace AniVault.Services;
 
-    public partial class TelegramClientService : IAsyncDisposable, IDisposable
+public partial class TelegramClientService : IAsyncDisposable, IDisposable
 {
     private readonly ILogger<TelegramClientService> _log;
     private readonly Logger? _wtcLogger;
@@ -21,6 +21,9 @@ namespace AniVault.Services;
     private const string UpdateFile = "updates.save";
 
     private UpdateManager _updateManager = null!;
+    
+    private long _lastPong;
+    public DateTime ClientCreatedAt { get; private set; }
 
     public TelegramClientService(ILogger<TelegramClientService> log, IServiceProvider serviceProvider, IConfiguration configuration)
     {
@@ -43,8 +46,8 @@ namespace AniVault.Services;
             
             Helpers.Log += WtcLog;
         }
-        _semaphoreConnect = new SemaphoreSlim(1);
-        _semaphoreDisconnect = new SemaphoreSlim(1);
+        _semaphoreConnect = new SemaphoreSlim(1, 1);
+        _semaphoreDisconnect = new SemaphoreSlim(1, 1);
         
         InitializeNewClient();
     }
@@ -63,6 +66,7 @@ namespace AniVault.Services;
     {
         _tgClient = new Client(ClientConfig);
         _tgClient.MaxAutoReconnects = 0;
+        ClientCreatedAt = DateTime.UtcNow;
     }
     
     private string? ClientConfig(string what)
@@ -84,20 +88,25 @@ namespace AniVault.Services;
     {
         User? loggedUser = null;
         //Evito che piu task possano effettuare il login
+        UpdateLastPong();
+        await _semaphoreConnect.WaitAsync();
         try
         {
-            await _semaphoreConnect.WaitAsync();
             if (_tgClient is not null && !_tgClient.Disconnected && _tgClient.User is not null)
             {
                 return _tgClient.User;
             }
-            _tgClient ??= new Client(ClientConfig);
 
-            _tgClient.MaxAutoReconnects = 0;
+            if (_tgClient is null)
+            {
+                InitializeNewClient();
+            }
+            
+
             _updateManager = _tgClient.WithUpdateManager(Client_OnUpdate, UpdateFile);
 
             //_tgClient.OnUpdates += Client_OnUpdate;
-            _tgClient.OnOther += Client_OnOther;
+            _tgClient!.OnOther += Client_OnOther;
 
             //await _tgClient.ConnectAsync();
             loggedUser = await _tgClient.LoginUserIfNeeded();
@@ -123,36 +132,48 @@ namespace AniVault.Services;
         _updateManager.SaveState(UpdateFile);
     }
 
-    private async Task DisconnectAndClearAsync()
+    public async Task DisconnectAndClearAsync()
     {
         await _semaphoreDisconnect.WaitAsync();
-        if (_tgClient is null)
+        try
         {
-            return;
+            if (_tgClient is null)
+            {
+                return;
+            }
+
+            _updateManager.SaveState(UpdateFile);
+            _tgClient.OnOther -= Client_OnOther;
+            await _tgClient.DisposeAsync();
+            _tgClient = null;
+            _log.Info("Telegram client has been disconnected");
         }
-        _updateManager.SaveState(UpdateFile);
-        _tgClient.OnOther -= Client_OnOther;
-        await _tgClient.DisposeAsync();
-        _tgClient = null;
-        _log.Info("Telegram client has been disconnected");
-        
-        _semaphoreDisconnect.Release();
+        finally
+        {
+            _semaphoreDisconnect.Release();
+        }
     }
     
     private void DisconnectAndClear()
     {
          _semaphoreDisconnect.Wait();
-        if (_tgClient is null)
-        {
-            return;
-        }
-        _updateManager.SaveState(UpdateFile);
-        _tgClient.OnOther -= Client_OnOther;
-        _tgClient.Dispose();
-        _tgClient = null;
-        _log.Info("Telegram client has been disconnected");
-        
-        _semaphoreDisconnect.Release();
+         try
+         {
+             if (_tgClient is null)
+             {
+                 return;
+             }
+
+             _updateManager.SaveState(UpdateFile);
+             _tgClient.OnOther -= Client_OnOther;
+             _tgClient.Dispose();
+             _tgClient = null;
+             _log.Info("Telegram client has been disconnected");
+         }
+         finally
+         {
+             _semaphoreDisconnect.Release();
+         }
     }
 
 
@@ -173,6 +194,16 @@ namespace AniVault.Services;
         _semaphoreConnect.Dispose();
         _semaphoreDisconnect.Dispose();
         _wtcLogger?.Dispose();
+    }
+    
+    private void UpdateLastPong()
+    {
+        Interlocked.Exchange(ref _lastPong, Environment.TickCount64);
+    }
+
+    public long GetLastPong()
+    {
+        return Interlocked.Read(ref _lastPong);
     }
 
 }

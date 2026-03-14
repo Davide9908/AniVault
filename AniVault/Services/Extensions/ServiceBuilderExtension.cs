@@ -22,6 +22,7 @@ public static class ServiceBuilderExtension
             .AddScoped<DownloadEpisodesTask>()
             .AddScoped<CompletedEpisodesMoverTask>()
             .AddScoped<AnimeEpisodeService>()
+            .AddScoped<TelegramClientCheckerTask>()
             .AddScheduler()
             .AddSerilog(serilogConfig =>
             {
