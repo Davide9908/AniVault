@@ -196,7 +196,7 @@ public partial class TelegramClientService : IAsyncDisposable, IDisposable
         _wtcLogger?.Dispose();
     }
     
-    private void UpdateLastPong()
+    public void UpdateLastPong()
     {
         Interlocked.Exchange(ref _lastPong, Environment.TickCount64);
     }

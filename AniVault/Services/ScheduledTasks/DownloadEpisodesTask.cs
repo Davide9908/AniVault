@@ -175,6 +175,7 @@ public class DownloadEpisodesTask : BaseTask
 
     private void DownloadProgressCallback(long transmitted, long totalSize, TelegramMediaDocument dbFile, ProgressState progressState)
     {
+        _client.UpdateLastPong();
         CancellationToken.ThrowIfCancellationRequested();
         dbFile.DataTransmitted = transmitted;
         dbFile.LastUpdateDateTime = DateTime.UtcNow;
