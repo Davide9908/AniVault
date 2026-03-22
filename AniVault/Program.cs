@@ -62,7 +62,7 @@ internal sealed class ApiKeySecuritySchemeTransformer(IAuthenticationSchemeProvi
         CancellationToken cancellationToken)
     {
         document.Components ??= new OpenApiComponents();
-
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
         document.Components.SecuritySchemes["ApiKey"] = new OpenApiSecurityScheme
         {
             Type = SecuritySchemeType.ApiKey,
