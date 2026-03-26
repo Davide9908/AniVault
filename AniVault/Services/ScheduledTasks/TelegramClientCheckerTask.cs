@@ -8,7 +8,8 @@ public class TelegramClientCheckerTask : BaseTask
     private readonly ILogger<TelegramClientCheckerTask> _log;
     private readonly TelegramClientService _tgClient;
     
-    private const long TimeoutTicks = TimeSpan.TicksPerMinute * 5;
+    //TimeSpan's milliseconds are 10000 ticks, so i have to divide it in order to compare it correctly with Environment.TickCount64
+    private const long TimeoutTicks = TimeSpan.TicksPerMinute / TimeSpan.TicksPerMillisecond * 5;
     
     public TelegramClientCheckerTask(ILogger<TelegramClientCheckerTask> log, TelegramClientService botService) : base(log)
     {
