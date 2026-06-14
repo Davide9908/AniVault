@@ -95,7 +95,7 @@ public class AnimeEpisodeService
             {
                 Array.Resize(ref fileNameTemplates, fileNameTemplates.Length + 1);
                 //one from the end
-                fileNameTemplates[^1] = templateNameCalculated;
+                fileNameTemplates[^1] = fileName;
                 calculatedFileNameTemplates[templateNameCalculated] = fileNameTemplates;
                 continue;
             }
