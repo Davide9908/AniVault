@@ -46,6 +46,7 @@ namespace AniVault.Database
         public void Delete()
         {
             MessageStatus = MessageStatus.Deleted;
+            UpdateDatetime = DateTime.UtcNow;
         }
     }
 

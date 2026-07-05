@@ -340,7 +340,7 @@ public partial class TelegramClientService
 
         foreach (int messageId in update.messages)
         {
-            var message = channel.TelegramMessages.FirstOrDefault(tm=>tm.MessageId == messageId);
+            var message = channel.TelegramMessages.FirstOrDefault(tm => tm.MessageId == messageId);
             if (message is null)
             {
                 _log.Warning("Received a {updateType} update, but the message id {id} was not found in the database", nameof(UpdateDeleteChannelMessages), messageId);
