@@ -8,7 +8,7 @@
     </PropertyGroup>
     
     <PropertyGroup>
-        <LangVersion>preview</LangVersion>
+        <LangVersion>default</LangVersion>
     </PropertyGroup>
 
 
