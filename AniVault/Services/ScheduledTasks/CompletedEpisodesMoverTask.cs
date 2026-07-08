@@ -114,8 +114,8 @@ public class CompletedEpisodesMoverTask : TransactionalTask
             {
                 string fileWithPath = Path.Combine(_defaultDownloadLocation, filename);
                 string destination = Path.Combine(_libraryPath, setting.AnimeFolderRelativePath, filename);
-                if (!File.Exists(destination)) {
-                    _ = Directory.CreateDirectory(destination);
+                if (!Directory.Exists(destination)) {
+                    _ = Directory.CreateDirectory(Path.Combine(_libraryPath, setting.AnimeFolderRelativePath));
                 }
                 File.Move(fileWithPath, destination);
             }
