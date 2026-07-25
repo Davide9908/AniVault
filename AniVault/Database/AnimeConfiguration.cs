@@ -20,6 +20,8 @@ namespace AniVault.Database
         [MaxLength(250)]
         public string? AnimeFolderRelativePath { get; set; }
         
+        public short SeasonNumber { get; set; }
+        
         public bool AutoDownloadEnabled { get; set; }
 
         public short? EpisodesNumberOffset { get; set; }
