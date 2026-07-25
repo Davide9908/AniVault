@@ -200,10 +200,18 @@ public partial class TelegramClientService
             string animeName = animeEpisodeService.GetAnimeNameFromMessageText(message.message);
             TelegramMediaDocument newMediaDocument;
             
-            var animeSetting = dbContext.AnimeConfigurations.FirstOrDefault(aes => EF.Functions.ILike(aes.AnimeName, $"%{animeName}%"));
+            short seasonNumber = animeEpisodeService.GetSeasonNumberFromMessageText(message.message);
+            var query = dbContext.AnimeConfigurations.Where(aes => EF.Functions.ILike(aes.AnimeName, $"%{animeName}%"));
+            if (seasonNumber > 0)
+            {
+                query = query.Where(aes=> aes.SeasonNumber == seasonNumber);
+            }
+            var animeSetting = query.FirstOrDefault();
+
             if (animeSetting is null)
             {
                 animeSetting = new AnimeConfiguration(animeName);
+                animeSetting.SeasonNumber = seasonNumber;
                 dbContext.AnimeConfigurations.Add(animeSetting);
                 newMediaDocument = new TelegramMediaDocument(document.ID, document.access_hash, document.file_reference,
                     newMessage, document.Filename, document.Filename, document.size, document.mime_type, animeSetting);

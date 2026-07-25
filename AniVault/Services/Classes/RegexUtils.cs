@@ -9,4 +9,7 @@ public static partial class RegexUtils
 
     [GeneratedRegex(@"[^.]+$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft, "it-IT")]
     public static partial Regex FileExtensionRegex();
+
+    [GeneratedRegex("[\\\\/]S\\d+", RegexOptions.IgnoreCase, "it-IT")]
+    public static partial Regex SeasonPathRegex();
 }

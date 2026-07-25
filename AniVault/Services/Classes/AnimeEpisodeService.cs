@@ -20,6 +20,17 @@ public class AnimeEpisodeService
         return messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[0].Trim();
     }
     
+    public short GetSeasonNumberFromMessageText(string messageText)
+    {
+        string row = messageText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)[1].Trim();
+        if (!row.StartsWith('S'))
+        {
+            return 0;
+        }
+        string number = row.Substring(1,2);
+        return short.Parse(number);
+    }
+    
     [Obsolete]
     public string? GetEpNumberFromMessageText(string messageText)
     {

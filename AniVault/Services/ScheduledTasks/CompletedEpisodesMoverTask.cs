@@ -113,7 +113,17 @@ public class CompletedEpisodesMoverTask : TransactionalTask
             if (animeEntry.num_episodes_watched >= epNumber)
             {
                 string fileWithPath = Path.Combine(_defaultDownloadLocation, filename);
-                string destination = Path.Combine(_libraryPath, setting.AnimeFolderRelativePath, filename);
+                string destination;
+                if (RegexUtils.SeasonPathRegex().IsMatch(setting.AnimeFolderRelativePath) || setting.SeasonNumber <= 0)
+                {
+                    destination = Path.Combine(_libraryPath, setting.AnimeFolderRelativePath, filename);
+                }
+                else
+                {
+                    string seasonFolder = $"S{setting.SeasonNumber}";
+                    destination = Path.Combine(_libraryPath, setting.AnimeFolderRelativePath, seasonFolder, filename);
+                }
+
                 if (!Directory.Exists(destination)) {
                     _ = Directory.CreateDirectory(Path.Combine(_libraryPath, setting.AnimeFolderRelativePath));
                 }
