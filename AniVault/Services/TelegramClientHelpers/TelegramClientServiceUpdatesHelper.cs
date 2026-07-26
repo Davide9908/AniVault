@@ -10,6 +10,7 @@ namespace AniVault.Services;
 
 public partial class TelegramClientService
 {
+    private const int Unknown_AnimeConfigId = -1;
     private async Task Client_OnUpdate(Update update)
     {
         UpdateLastPong();
@@ -197,16 +198,32 @@ public partial class TelegramClientService
         dbContext.TelegramMessages.Add(newMessage);
         if (dbChannel.IsAnimeChannel && message.media is MessageMediaDocument { document: Document document }) //It's the same as "message.media is MessageMediaDocument var1 && var1.document is Document var2"
         {
-            string animeName = animeEpisodeService.GetAnimeNameFromMessageText(message.message);
+            AnimeConfiguration? animeSetting;
             TelegramMediaDocument newMediaDocument;
-            
-            short seasonNumber = animeEpisodeService.GetSeasonNumberFromMessageText(message.message);
-            var query = dbContext.AnimeConfigurations.Where(aes => EF.Functions.ILike(aes.AnimeName, $"%{animeName}%"));
-            if (seasonNumber > 0)
+            string animeName = string.Empty;
+            short seasonNumber = 0;
+            if (!string.IsNullOrWhiteSpace(message.message))
             {
-                query = query.Where(aes=> aes.SeasonNumber == seasonNumber);
+                animeName = animeEpisodeService.GetAnimeNameFromMessageText(message.message);
+            
+                seasonNumber = animeEpisodeService.GetSeasonNumberFromMessageText(message.message);
+                var query = dbContext.AnimeConfigurations.Where(aes => EF.Functions.ILike(aes.AnimeName, $"%{animeName}%"));
+                IQueryable<AnimeConfiguration> querySeason = query;
+                if (seasonNumber > 0)
+                {
+                    querySeason = query.Where(aes=> aes.SeasonNumber == seasonNumber);
+                }
+                animeSetting = querySeason.FirstOrDefault();
+                if (animeSetting is null)
+                {
+                    animeSetting = query.FirstOrDefault();
+                }
             }
-            var animeSetting = query.FirstOrDefault();
+            else
+            {
+                animeSetting = dbContext.AnimeConfigurations.First(ac => ac.AnimeConfigurationId == Unknown_AnimeConfigId);
+            }
+            
 
             if (animeSetting is null)
             {
