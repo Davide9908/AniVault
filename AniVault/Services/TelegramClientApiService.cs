@@ -81,10 +81,19 @@ public class TelegramClientApiService
                 }
 
                 string animeName = _animeEpisodeService.GetAnimeNameFromMessageText(tgMessage.message);
-                AnimeConfiguration? animeConfiguration;
-                if ((animeConfiguration = animeConfigurations.FirstOrDefault(ac => ac.AnimeName.Equals(animeName, StringComparison.InvariantCultureIgnoreCase))) is null)
+                short seasonNumber = _animeEpisodeService.GetSeasonNumberFromMessageText(tgMessage.message);
+                
+                var search = animeConfigurations.Where(ac => ac.AnimeName.Equals(animeName, StringComparison.InvariantCultureIgnoreCase));
+                if (seasonNumber > 0)
+                {
+                    search = search.Where(aes=> aes.SeasonNumber == seasonNumber);
+                }
+                AnimeConfiguration? animeConfiguration = search.FirstOrDefault();
+                
+                if (animeConfiguration is null)
                 {
                     animeConfiguration = new AnimeConfiguration(animeName);
+                    animeConfiguration.SeasonNumber = seasonNumber;
                     createdAnimeConfigurations.Add(animeConfiguration);
                     animeConfigurations.Add(animeConfiguration);
                 }
@@ -152,13 +161,25 @@ public class TelegramClientApiService
                 continue;
             }
             
+            
             string animeName = _animeEpisodeService.GetAnimeNameFromMessageText(tgMessage.message);
-            AnimeConfiguration? animeConfiguration;
-            if ((animeConfiguration = animeConfigurations.FirstOrDefault(ac => ac.AnimeName == animeName)) is null)
+            short seasonNumber = _animeEpisodeService.GetSeasonNumberFromMessageText(tgMessage.message);
+                
+            var search = animeConfigurations.Where(ac => ac.AnimeName.Equals(animeName, StringComparison.InvariantCultureIgnoreCase));
+            if (seasonNumber > 0)
+            {
+                search = search.Where(aes=> aes.SeasonNumber == seasonNumber);
+            }
+            AnimeConfiguration? animeConfiguration = search.FirstOrDefault();
+                
+            if (animeConfiguration is null)
             {
                 animeConfiguration = new AnimeConfiguration(animeName);
+                animeConfiguration.SeasonNumber = seasonNumber;
                 createdAnimeConfigurations.Add(animeConfiguration);
+                animeConfigurations.Add(animeConfiguration);
             }
+            
             telegramMessage.MediaDocument = new(mediaDocument.ID, mediaDocument.access_hash, mediaDocument.file_reference, mediaDocument.Filename, mediaDocument.Filename, mediaDocument.size, mediaDocument.mime_type, animeConfiguration)
             {
                 DownloadStatus = DownloadStatus.Ignored
