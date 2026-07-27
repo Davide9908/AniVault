@@ -32,7 +32,7 @@ public class DownloadEpisodesTask : BaseTask
         var downloadToRetry = _dbContext.TelegramMediaDocuments
             .Where(md => ((md.DownloadStatus == DownloadStatus.ErrorTimeout && md.Retries < 3) 
                                                 || md.DownloadStatus == DownloadStatus.ErrorCancelled) 
-                         && md.LastUpdateDateTime <= lastUpdateLimit)
+                         && md.LastUpdateDateTime >= lastUpdateLimit)
             .ToList();
         // var downloadToRetry = downloadsInError
         //     .Where(md => (md.LastUpdateDateTime - DateTime.Now).TotalHours >= 1)
