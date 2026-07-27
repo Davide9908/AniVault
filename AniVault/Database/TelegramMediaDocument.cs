@@ -92,7 +92,8 @@ namespace AniVault.Database
         Completed,
         Aborted,
         Ignored,
-        ErrorTimeout
+        ErrorTimeout,
+        ErrorCancelled
     }
 
 

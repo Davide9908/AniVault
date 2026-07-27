@@ -30,7 +30,9 @@ public class DownloadEpisodesTask : BaseTask
     {
         var lastUpdateLimit = DateTime.UtcNow.AddHours(-1);
         var downloadToRetry = _dbContext.TelegramMediaDocuments
-            .Where(md => md.DownloadStatus == DownloadStatus.ErrorTimeout && md.Retries < 3 && md.LastUpdateDateTime <= lastUpdateLimit)
+            .Where(md => ((md.DownloadStatus == DownloadStatus.ErrorTimeout && md.Retries < 3) 
+                                                || md.DownloadStatus == DownloadStatus.ErrorCancelled) 
+                         && md.LastUpdateDateTime <= lastUpdateLimit)
             .ToList();
         // var downloadToRetry = downloadsInError
         //     .Where(md => (md.LastUpdateDateTime - DateTime.Now).TotalHours >= 1)
@@ -117,6 +119,7 @@ public class DownloadEpisodesTask : BaseTask
                     {
                         return;
                     }
+
                     gotFileReferenceExpired = true;
                     retryBool = true;
                     await Task.Delay(1000);
@@ -126,7 +129,8 @@ public class DownloadEpisodesTask : BaseTask
                     when (rpcEx.Code == -503 && rpcEx.Message.Contains("Timeout"))
                 {
                     await HandleDownloadTimeoutError(filePath, dbFile, fileStream);
-                    _log.Error(rpcEx, "Timeout error, retrying later. file {filename} to {fileNamePath}", dbFile.FilenameFromTelegram, fileStream.Name);
+                    _log.Error(rpcEx, "Timeout error, retrying later. file {filename} to {fileNamePath}",
+                        dbFile.FilenameFromTelegram, fileStream.Name);
                     try
                     {
                         fileStream = File.Open(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
@@ -136,9 +140,18 @@ public class DownloadEpisodesTask : BaseTask
                         _log.Error(ex, "An error occured while creating the file {filePath}", filePath);
                         return;
                     }
-                    
+
                     await Task.Delay(2000);
                     continue;
+                }
+                catch (OperationCanceledException oce)
+                {
+                    _log.Error(oce, "Downloading file {filename} to {fileNamePath} has been cancelled",
+                        dbFile.FilenameFromTelegram, fileStream.Name);
+                    
+                    await HandleDownloadError(filePath, dbFile, fileStream, cancelled: true);
+
+                    return;
                 }
                 catch (Exception ex)
                 {
@@ -198,9 +211,9 @@ public class DownloadEpisodesTask : BaseTask
 
     }
 
-    private async Task HandleDownloadError(string path, TelegramMediaDocument downDbFile, FileStream fileStream, short retries = -1)
+    private async Task HandleDownloadError(string path, TelegramMediaDocument downDbFile, FileStream fileStream, short retries = -1, bool cancelled = false)
     {
-        downDbFile.DownloadStatus = DownloadStatus.Error;
+        downDbFile.DownloadStatus = cancelled ? DownloadStatus.ErrorCancelled : DownloadStatus.Error;
 
         downDbFile.LastUpdateDateTime = DateTime.UtcNow;
 
